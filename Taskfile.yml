@@ -14,14 +14,14 @@ vars:
   STAGING: '{{.ROOT_DIR}}/staging'
   # The custom domain on the bucket. Every public URL derives from it; a fork changes this
   # line and the text in site/index.html.
-  HOST: ctan.ijosh.com
-  # Objects live under CTAN's own path so https://ctan.ijosh.com/systems/texlive/tlnet/
+  HOST: tlnet.ijosh.com
+  # Objects live under CTAN's own path so https://tlnet.ijosh.com/systems/texlive/tlnet/
   # is a drop-in mirror URL and the rest of CTAN can be fronted later without moving them.
   # Bucket names are per account, so a fork keeps the name tlnet.
   PREFIX: systems/texlive/tlnet
   BUCKET: s3://tlnet/{{.PREFIX}}
   URL: https://{{.HOST}}/{{.PREFIX}}
-  # Landing page for https://ctan.ijosh.com/: site/index.html uploaded to the bucket root.
+  # Landing page for https://tlnet.ijosh.com/: site/index.html uploaded to the bucket root.
   # A Cloudflare Transform Rule rewrites "/" to "/index.html".
   SITE: https://{{.HOST}}
   # Stage output that report reads back. Outside staging so it is never uploaded.

@@ -1,7 +1,7 @@
-# ctan
+# tlnet
 
 A daily mirror of `CTAN/systems/texlive/tlnet` (the directory `tlmgr` installs from) on
-Cloudflare R2, served at `https://ctan.ijosh.com/systems/texlive/tlnet/`. About 17,400
+Cloudflare R2, served at `https://tlnet.ijosh.com/systems/texlive/tlnet/`. About 17,400
 files and 6.8 GB; the largest file is ~145 MB.
 
 Everything is in four files:
@@ -10,7 +10,7 @@ Everything is in four files:
   `fetch -> verify -> guard -> publish -> smoke -> report -> ping -> page`.
 - `.github/workflows/sync.yml`: installs `task` and runs `task sync` daily at 03:30 UTC.
 - `.github/workflows/check.yml`: runs `task --dry sync` on pull requests.
-- `site/index.html`: the landing page at `https://ctan.ijosh.com/`. It repeats the README's
+- `site/index.html`: the landing page at `https://tlnet.ijosh.com/`. It repeats the README's
   prose, so a README edit is usually a page edit too.
 
 `README.md` is for users. Operational detail belongs here and in Taskfile comments.
@@ -125,5 +125,5 @@ tree.
 - `publish` needs R2 credentials in `AWS_*` env vars; there is no mock, and the AWS CLI is
   not installed locally by default.
 - Is the mirror fresh?
-  `curl -sI https://ctan.ijosh.com/systems/texlive/tlnet/tlpkg/texlive.tlpdb.sha512`
+  `curl -sI https://tlnet.ijosh.com/systems/texlive/tlnet/tlpkg/texlive.tlpdb.sha512`
   and read `last-modified`.

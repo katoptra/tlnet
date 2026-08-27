@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>ctan.ijosh.com</title>
-<meta name="description" content="A daily, signature-verified mirror of CTAN systems/texlive/tlnet, the repository tlmgr installs and updates from. Point tlmgr or install-tl at https://ctan.ijosh.com/systems/texlive/tlnet/.">
-<link rel="canonical" href="https://ctan.ijosh.com/">
+<title>tlnet.ijosh.com</title>
+<meta name="description" content="A daily, signature-verified mirror of CTAN systems/texlive/tlnet, the repository tlmgr installs and updates from. Point tlmgr or install-tl at https://tlnet.ijosh.com/systems/texlive/tlnet/.">
+<link rel="canonical" href="https://tlnet.ijosh.com/">
 <style>
   :root { --fg: #1f2328; --bg: #ffffff; --muted: #59636e; --line: #d1d9e0; --code: #f6f8fa; --link: #0969da; }
   @media (prefers-color-scheme: dark) {
@@ -37,9 +37,9 @@
 <body>
 <main>
 <header>
-  <a href="/">ctan.ijosh.com</a>
+  <a href="/">tlnet.ijosh.com</a>
   <nav>
-    <a href="https://github.com/jshvn/ctan">GitHub</a>
+    <a href="https://github.com/jshvn/tlnet">GitHub</a>
     <a href="https://ijosh.com">ijosh.com</a>
   </nav>
 </header>
@@ -47,9 +47,9 @@
 <h1>ctan</h1>
 
 <p>
-<a href="https://github.com/jshvn/ctan/actions/workflows/sync.yml"><img src="https://github.com/jshvn/ctan/actions/workflows/sync.yml/badge.svg" alt="sync"></a>
-<a href="https://github.com/jshvn/ctan/blob/main/LICENSE"><img src="https://img.shields.io/github/license/jshvn/ctan" alt="license"></a>
-<a href="https://github.com/jshvn/ctan/actions/workflows/sync.yml"><img src="https://healthchecks.io/badge/8955b5d3-ba3b-4e8a-ac39-8501494333f5/otTXcui6-2.svg" alt="mirror"></a>
+<a href="https://github.com/jshvn/tlnet/actions/workflows/sync.yml"><img src="https://github.com/jshvn/tlnet/actions/workflows/sync.yml/badge.svg" alt="sync"></a>
+<a href="https://github.com/jshvn/tlnet/blob/main/LICENSE"><img src="https://img.shields.io/github/license/jshvn/tlnet" alt="license"></a>
+<a href="https://github.com/jshvn/tlnet/actions/workflows/sync.yml"><img src="https://healthchecks.io/badge/8955b5d3-ba3b-4e8a-ac39-8501494333f5/otTXcui6-2.svg" alt="mirror"></a>
 <br><span class="status">Last updated <!--UPDATED-->.</span>
 </p>
 
@@ -59,12 +59,12 @@
 
 <p>TeX Live and TinyTeX both use <code>tlmgr</code>:</p>
 
-<pre><code>tlmgr option repository https://ctan.ijosh.com/systems/texlive/tlnet/
+<pre><code>tlmgr option repository https://tlnet.ijosh.com/systems/texlive/tlnet/
 tlmgr update --self --all</code></pre>
 
 <p>For a fresh install, give the installer the same URL:</p>
 
-<pre><code>install-tl -repository https://ctan.ijosh.com/systems/texlive/tlnet/</code></pre>
+<pre><code>install-tl -repository https://tlnet.ijosh.com/systems/texlive/tlnet/</code></pre>
 
 <p>To go back to CTAN's mirror rotation: <code>tlmgr option repository ctan</code>.</p>
 
@@ -76,13 +76,13 @@ current TeX Live release and moves to the next one when upstream does.</p>
 <p>Once a day GitHub Actions runs a job to sync the tlnet directory to R2. It verifies <code>texlive.tlpdb</code>
 and the installers against their SHA-512 and GPG signatures (via pinned TeX Live key) and every package
 container against its checksum. Every step is in the
-<a href="https://github.com/jshvn/ctan/blob/main/Taskfile.yml"><code>Taskfile.yml</code></a>.</p>
+<a href="https://github.com/jshvn/tlnet/blob/main/Taskfile.yml"><code>Taskfile.yml</code></a>.</p>
 
 <strong><p>Is it fresh?</p></strong> 
 
 <p>Check <code>last-modified</code> on the index:</p>
 
-<pre><code>curl -sI https://ctan.ijosh.com/systems/texlive/tlnet/tlpkg/texlive.tlpdb.sha512</code></pre>
+<pre><code>curl -sI https://tlnet.ijosh.com/systems/texlive/tlnet/tlpkg/texlive.tlpdb.sha512</code></pre>
 
 
 
@@ -95,7 +95,7 @@ volunteer mirror, and any one of them can be unreachable, on a slow connection, 
 <h2>Want your own?</h2>
 
 <ol>
-  <li>Fork <a href="https://github.com/jshvn/ctan">this repo</a>.</li>
+  <li>Fork <a href="https://github.com/jshvn/tlnet">this repo</a>.</li>
   <li>Create an R2 bucket named <code>tlnet</code>, an API token with Object Read &amp; Write scoped to it,
     and a custom domain pointing at the bucket. Set <code>HOST</code> to that domain in <code>Taskfile.yml</code>.
     For a landing page at <code>/</code>, add a Cloudflare Transform Rule rewriting the path <code>/</code> to

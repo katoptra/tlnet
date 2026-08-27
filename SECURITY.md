@@ -28,9 +28,9 @@ that overlaps the publish can see checksum errors. Rerun it.
 
 ## Reporting
 
-If you find a way to serve altered or unsigned content through `ctan.ijosh.com`, or a
+If you find a way to serve altered or unsigned content through `tlnet.ijosh.com`, or a
 weakness in the pipeline itself, report it privately through
-[GitHub's vulnerability reporting](https://github.com/jshvn/ctan/security/advisories/new).
+[GitHub's vulnerability reporting](https://github.com/jshvn/tlnet/security/advisories/new).
 Please do not open a public issue for it.
 
 Problems with the packages themselves (a malicious or broken upstream package) belong to
