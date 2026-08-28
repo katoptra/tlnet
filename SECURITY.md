@@ -23,8 +23,8 @@ too. After each publish, `texlive.tlpdb.sha512` is read back through the domain 
 with what was uploaded.
 
 Uploads are not atomic. Containers land first and the tlpdb that names them a minute or so
-later (around 03:35 UTC daily), and containers are overwritten in place, so a `tlmgr` run
-that overlaps the publish can see checksum errors. Rerun it.
+later, and containers are overwritten in place, so a `tlmgr` run that overlaps the publish
+can see checksum errors. Rerun it.
 
 ## Reporting
 

@@ -1,7 +1,5 @@
 name: sync
 on:
-  schedule:
-    - cron: '30 3 * * *'   # dante publishes tlnet daily; pick a slot after the mirrors catch up
   workflow_dispatch:
 permissions:
   contents: read

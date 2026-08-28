@@ -8,7 +8,8 @@ Everything is in four files:
 
 - `Taskfile.yml`: the whole pipeline. `task sync` runs
   `fetch -> verify -> guard -> publish -> smoke -> report -> ping -> page`.
-- `.github/workflows/sync.yml`: installs `task` and runs `task sync` daily at 03:30 UTC.
+- `.github/workflows/sync.yml`: installs `task` and runs `task sync`. It has no schedule of
+  its own; it is started by `workflow_dispatch` from outside the repository.
 - `.github/workflows/check.yml`: runs `task --dry sync` on pull requests.
 - `site/index.html`: the landing page at `https://tlnet.ijosh.com/`. It repeats the README's
   prose, so a README edit is usually a page edit too.
@@ -59,9 +60,9 @@ Each of these is a bug that has happened or a bill that would. Do not undo them.
   by `smoke`, never by counting.
 - **A failed run is the only alert.** `guard` fails before `publish` if staging exceeds
   10 GB; the mirror stays a day stale. healthchecks.io emails when a day passes without `ping`,
-  which also catches GitHub disabling the schedule after 60 commit-free days. Do not add
-  notification dependencies or upstream-freshness monitoring (tlnet goes quiet for weeks
-  before each release).
+  which also catches an external trigger that stops firing. Do not add notification
+  dependencies or upstream-freshness monitoring (tlnet goes quiet for weeks before each
+  release).
 - `.xz` is not in Cloudflare's default cache list, so there is no stale-edge problem. If a
   cache-everything rule is ever added, `publish` needs a purge step before `smoke`.
 
