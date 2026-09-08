@@ -1,8 +1,8 @@
 # tlnet
 
-[![sync](https://github.com/jshvn/tlnet/actions/workflows/sync.yml/badge.svg)](https://github.com/jshvn/tlnet/actions/workflows/sync.yml)
-[![license](https://img.shields.io/github/license/jshvn/tlnet)](https://github.com/jshvn/tlnet/blob/main/LICENSE)
-[![mirror](https://healthchecks.io/badge/8955b5d3-ba3b-4e8a-ac39-8501494333f5/otTXcui6-2.svg)](https://github.com/jshvn/tlnet/actions/workflows/sync.yml)
+[![sync](https://github.com/katoptra/tlnet/actions/workflows/sync.yml/badge.svg)](https://github.com/katoptra/tlnet/actions/workflows/sync.yml)
+[![license](https://img.shields.io/github/license/katoptra/tlnet)](https://github.com/katoptra/tlnet/blob/main/LICENSE)
+[![mirror](https://healthchecks.io/badge/8955b5d3-ba3b-4e8a-ac39-8501494333f5/otTXcui6-2.svg)](https://github.com/katoptra/tlnet/actions/workflows/sync.yml)
 
 A daily mirror of `CTAN/systems/texlive/tlnet` on Cloudflare R2. This is the directory
 `tlmgr` installs and updates from, and it is the only part of CTAN here, complete with every
@@ -33,7 +33,7 @@ tracks the current TeX Live release and moves to the next one when upstream does
 Once a day GitHub Actions runs a job to sync the tlnet directory to R2. It verifies
 `texlive.tlpdb` against its SHA-512 and GPG signature (via pinned TeX Live key) and every
 package container against its checksum. Every step is in the
-[`Taskfile.yml`](https://github.com/jshvn/tlnet/blob/main/Taskfile.yml).
+[`Taskfile.yml`](https://github.com/katoptra/tlnet/blob/main/Taskfile.yml).
 
 **Is it fresh?**
 
@@ -54,7 +54,7 @@ This setup ensures a consistent, reliable source for TeX Live updates built on
 
 ## Want your own?
 
-1. Fork [this repo](https://github.com/jshvn/tlnet).
+1. Fork [this repo](https://github.com/katoptra/tlnet).
 2. Create an R2 bucket named `tlnet`, an API token with Object Read & Write scoped to it,
    and a custom domain pointing at the bucket. Set `HOST` to that domain in `Taskfile.yml`.
    For a landing page at `/`, add a Cloudflare Transform Rule rewriting the path `/` to
