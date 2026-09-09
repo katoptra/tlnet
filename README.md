@@ -6,7 +6,7 @@
 
 A daily mirror of `CTAN/systems/texlive/tlnet` on Cloudflare R2. This is the directory
 `tlmgr` installs and updates from, and it is the only part of CTAN here, complete with every
-platform, docs and sources.
+platform, docs and sources. About 17,000 files and 6.8 GB.
 
 ## How to use
 
@@ -30,10 +30,26 @@ tracks the current TeX Live release and moves to the next one when upstream does
 
 ## How it works
 
-Once a day GitHub Actions runs a job to sync the tlnet directory to R2. It verifies
-`texlive.tlpdb` against its SHA-512 and GPG signature (via pinned TeX Live key) and every
-package container against its checksum. Every step is in the
-[`Taskfile.yml`](https://github.com/katoptra/tlnet/blob/main/Taskfile.yml).
+Once a day GitHub Actions runs the following pipeline inside the toolbox image. Every step
+is a verb of the rsync engine in [katoptra/lib](https://github.com/katoptra/lib), in the
+order [`Taskfile.yml`](https://github.com/katoptra/tlnet/blob/main/Taskfile.yml) gives
+them; the landing page is this mirror's own verb:
+
+1. **`clock` `list` `state` `rebuild`** — stamp the day, list the subtree on CTAN's master
+   (dante), and fetch the listing the previous run left in the bucket, rebuilding it from
+   the bucket if it went missing.
+2. **`diff` `split`** — take what upstream has and the state lacks, refuse a tree past R2's
+   free 10 GB, and split the delta into batches.
+3. **`prepare` `batches`** — check the signed `texlive.tlpdb.sha512` against the pinned
+   TeX Live key, then per batch rsync the files, check every signed file and every package
+   container against the tlpdb's checksums, upload, and write the new state. The tlpdb
+   lands last, after every container it names.
+4. **`delete` `reconcile`** — drop the keys that left upstream, and once a day sweep the
+   bucket against the state for anything neither owns.
+5. **`index`** — upload the landing page at `https://tlnet.ijosh.com/`, dated.
+6. **`smoke` `report` `ping`** — read `texlive.tlpdb.sha512` and a sample of the run's keys
+   back over the public domain, summarise what landed, and ping healthchecks.io. Silence
+   is the alert.
 
 **Is it fresh?**
 
@@ -59,10 +75,30 @@ This setup ensures a consistent, reliable source for TeX Live updates built on
    and a custom domain pointing at the bucket. Set `HOST` to that domain in `Taskfile.yml`.
    For a landing page at `/`, add a Cloudflare Transform Rule rewriting the path `/` to
    `/index.html`, and put your own links and text in `site/index.html`.
-3. Add the repository secrets `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
-   and optionally `HEALTHCHECK_URL` (a healthchecks.io ping URL).
-4. Actions -> sync -> Run workflow. The first run uploads the whole mirror in about seven
-   minutes; every run after that pushes the daily delta.
+3. Add the repository secrets below. They are the whole requirement.
+4. Actions -> sync -> Run workflow. The first run finds an empty bucket and fills it; every
+   run after that pushes the daily delta.
+5. Start it every day. Nothing in this repository schedules a run: add a `schedule:`
+   trigger to `sync.yml` with a time of your own, or dispatch it from outside, as this
+   mirror is.
+
+| Secret | What it is |
+| --- | --- |
+| `R2_ACCOUNT_ID` | The Cloudflare account the bucket lives in |
+| `R2_ACCESS_KEY_ID` | R2 API token with Object Read & Write on the bucket |
+| `R2_SECRET_ACCESS_KEY` | That token's secret |
+| `HEALTHCHECK_URL` | Optional: a healthchecks.io ping URL |
+
+To test or run locally, with `task` and Docker (or Apple's `container`) installed:
+
+```sh
+task check    # render every command of the pipeline inside the toolbox image; diff it against render.txt
+task sync     # one run, with the three R2_* variables and HEALTHCHECK_URL exported
+```
+
+The image, the engine's verbs and the two workflows this repository calls are
+[katoptra/lib](https://github.com/katoptra/lib)'s: the include and the image at `v1`, the
+workflows at a release commit.
 
 Pull requests are welcome.
 

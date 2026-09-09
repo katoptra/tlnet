@@ -1,181 +1,112 @@
-# Mirror the TeX Live network repository (CTAN systems/texlive/tlnet) into a
-# Cloudflare R2 bucket. Runs the same way locally and inside GitHub Actions.
-#
-# R2 is reached through the AWS CLI, configured entirely by environment variables:
-#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY   (R2 API token, Object Read & Write)
-#   AWS_ENDPOINT_URL=https://<account-id>.r2.cloudflarestorage.com   AWS_REGION=auto
+# Mirror CTAN's systems/texlive/tlnet, the tree tlmgr installs and updates from, into a
+# Cloudflare R2 bucket, daily, from a list diff: dante's listing of the subtree against the
+# state the last run left in the bucket. The toolbox, which starts a run, contains it in an
+# image, resolves its secrets, renders and checks it, and reports it, and the rsync engine,
+# which moves the bytes and checks the signatures, are katoptra/lib's, included below at v1
+# and flattened into this file. What is here is the mirror's own: its identity, the filter
+# that narrows CTAN to the subtree, the pipeline in order, the landing page at the bucket
+# root, and its row of the report. R2 is reached through the AWS CLI; the three R2_*
+# repository secrets cross into the image by name (PASS) and env: turns them into what the
+# CLI reads.
 version: '3'
 
 vars:
-  # The CTAN master host. Secondary mirrors can lag it by a day; the master cannot.
-  SOURCE: rsync://rsync.dante.ctan.org/CTAN/systems/texlive/tlnet/
-  # A stalled sender fails in 5 minutes instead of holding the job to its 30-minute limit.
-  RSYNC_TIMEOUTS: --timeout=300 --contimeout=60
-  STAGING: '{{.ROOT_DIR}}/staging'
-  # The custom domain on the bucket. Every public URL derives from it; a fork changes this
-  # line and the text in site/index.html.
-  HOST: tlnet.ijosh.com
-  # Objects live under CTAN's own path so https://tlnet.ijosh.com/systems/texlive/tlnet/
-  # is a drop-in mirror URL and the rest of CTAN can be fronted later without moving them.
-  # Bucket names are per account, so a fork keeps the name tlnet.
-  PREFIX: systems/texlive/tlnet
-  BUCKET: s3://tlnet/{{.PREFIX}}
-  URL: https://{{.HOST}}/{{.PREFIX}}
-  # Landing page for https://tlnet.ijosh.com/: site/index.html uploaded to the bucket root.
-  # A Cloudflare Transform Rule rewrites "/" to "/index.html".
-  SITE: https://{{.HOST}}
-  # Stage output that report reads back. Outside staging so it is never uploaded.
-  RUN: /tmp/tlnet-run
-  # TeX Live Distribution primary key, published at tug.org/texlive/verify.html
-  TL_KEY: C78B82D8C79512F79CC0D7C80D5E5D9106BAB6BC
-  # R2 free tier is 10 GB-month, here as decimal GB in MiB (the smaller unit, so a
-  # billing-side GB never comes out larger than what we measured). guard prints the size
-  # every run, so the trend is in the log long before this trips.
-  LIMIT_MB: 9537   # 10 GB: never publish a tree that would bill
-  # aws s3 sync uploads when size differs or the local mtime is newer than the
-  # object's LastModified. rsync -t keeps upstream mtimes, and a revision bump is
-  # always built after our previous upload, so same-size bumps are caught. Never
-  # add --size-only. aws.config keeps every upload a single PutObject.
-  AWS_FLAGS: --no-progress
+  SOURCE: rsync://rsync.dante.ctan.org/CTAN/   # the master; a secondary mirror can lag it by a day
+  HOST: tlnet.ijosh.com                         # a fork changes this line and the text in site/index.html
+  BUCKET: tlnet                                 # bucket name; objects sit at its root under CTAN's own paths
+  TL: systems/texlive/tlnet                     # the signed subtree, which is the whole mirror
+  TL_KEY: C78B82D8C79512F79CC0D7C80D5E5D9106BAB6BC   # tug.org/texlive/verify.html
+  CEILING_GB: 10                                # R2's free tier; refuse to run past this many decimal GB upstream
+  LIST_FLOOR: 8500                              # a listing under this many lines is a truncated one; tlnet is ~17,000 files
+  OWN: index.html                               # the landing page, the mirror's own key at the bucket root; reconcile spares it
+  # SOURCE is CTAN's root and FILTER narrows the listing to the subtree, so every key keeps
+  # its systems/texlive/tlnet/ prefix and the host works anywhere a CTAN mirror URL does.
+  # rsync takes the first rule that matches: the two excludes drop the revision-stamped
+  # duplicates (tlmgr asks for foo.tar.xz, which upstream symlinks to foo.r123.tar.xz; -L
+  # resolves the stable name, and holding both would double the tree), the includes open
+  # the path down to the subtree, and the last rule drops everything else.
+  FILTER: >-
+    --exclude='*.r[0-9]*.tar.xz' --exclude='/systems/texlive/tlnet/update-tlmgr-r*'
+    --include=/systems/ --include=/systems/texlive/ --include='/systems/texlive/tlnet/***'
+    --exclude='*'
 
+# The AWS CLI reads AWS_*; the repository secrets are R2_*. They cross into the image by
+# name and become the CLI's variables here, in memory, so no value reaches a command line.
+# The OS environment beats a mapping below, so the AWS_* names never go in PASS.
 env:
   AWS_CONFIG_FILE: '{{.ROOT_DIR}}/aws.config'
+  AWS_ACCESS_KEY_ID: {sh: 'printf %s "$R2_ACCESS_KEY_ID"'}
+  AWS_SECRET_ACCESS_KEY: {sh: 'printf %s "$R2_SECRET_ACCESS_KEY"'}
+  AWS_ENDPOINT_URL: {sh: 'printf https://%s.r2.cloudflarestorage.com "$R2_ACCOUNT_ID"'}
+  AWS_REGION: auto
+
+# Two includes, one namespace. A verb both an include and this file define is a parse
+# error unless the include excludes it: the report hooks, and the one engine hook this
+# mirror fills. MAX_BATCHES and RECONCILE are the engine's inline defaults, so a run sets
+# them: task sync -- MAX_BATCHES=8 RECONCILE=true.
+includes:
+  toolbox:
+    taskfile: https://raw.githubusercontent.com/katoptra/lib/v1/toolbox.yml
+    flatten: true
+    excludes: [report-engine, report-mirror]
+    vars:
+      NAME: tlnet
+      DESC: a daily mirror of {{.SOURCE}}{{.TL}}/ at https://{{.HOST}}/{{.TL}}/
+      IMAGE: ghcr.io/katoptra/toolbox:rsync-v1
+      PASS: R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_ACCOUNT_ID
+      MENU: >-
+        ""
+        "${c}listing -- dante over rsync, no credentials, inside the image${r}"
+        "  task run -- task list     The subtree through FILTER, to .run/upstream.txt"
+        "                    ${d}every path under {{.TL}}/, none revision-stamped; LIST_FLOOR is half its line count${r}"
+  rsync:
+    taskfile: https://raw.githubusercontent.com/katoptra/lib/v1/engines/rsync.yml
+    flatten: true
+    excludes: [index]
 
 tasks:
-  default:
-    cmds: [{task: sync}]
-
-  sync:
-    desc: fetch -> verify -> guard -> publish -> smoke -> report -> ping -> page; refuses to bill past 10 GB
+  pipeline:
+    desc: clock -> list -> state -> rebuild? -> diff -> split -> prepare -> batches -> delete -> reconcile? -> index -> smoke -> report -> ping
     cmds:
-      - {task: fetch}
-      - {task: verify}
-      - {task: guard}
-      - {task: publish}
+      - {task: clock}
+      - {task: list}
+      - {task: state}
+      - {task: rebuild}
+      - {task: diff}
+      - {task: split}
+      - {task: prepare}
+      - {task: batches}
+      - {task: delete}
+      - {task: reconcile}
+      - {task: index}
       - {task: smoke}
-      # report, then ping, then page: a healthchecks blip cannot lose the summary, and a broken
-      # landing page is one email on a fresh mirror.
       - {task: report}
       - {task: ping}
-      - {task: page}
 
-  fetch:
-    desc: Pull tlnet, dereferencing symlinks (tlmgr requests foo.tar.xz, never foo.r123.tar.xz)
-    set: [pipefail]   # tee must never mask a failed rsync
+  plan-pipeline:
+    desc: 'The read-only half: clock -> list -> state -> diff -> split'
     cmds:
-      - mkdir -p {{.STAGING}} {{.RUN}}
-      # -L turns each unversioned symlink into a real file; the exclude drops the
-      # versioned originals so nothing is stored twice.
-      - >-
-        rsync -rLt {{.RSYNC_TIMEOUTS}} --delete --delete-excluded --partial --stats
-        --exclude='*.r[0-9]*.tar.xz' --exclude='/update-tlmgr-r*'
-        {{.SOURCE}} {{.STAGING}}/ | tee {{.RUN}}/fetch.txt
+      - {task: clock}
+      - {task: list}
+      - {task: state}
+      - {task: diff}
+      - {task: split}
 
-  verify:
-    desc: Refuse to publish a tree that is tampered, mid-update, missing or corrupt containers, or holding duplicates
-    dir: '{{.STAGING}}/tlpkg'
-    cmds:
-      # The tlpdb, the installers and the tlmgr updaters at the tree root each carry a
-      # signed sha512; nothing else outside archive/ is signed upstream. gpgv reads the
-      # keyring as a plain file, so nothing from the mirror is imported before it is
-      # authenticated. The keyring came from the same mirror as the signature, so pin the
-      # fingerprint: VALIDSIG's last field is the primary key that signed. GOODSIG as well,
-      # because gpgv reports an expired or revoked key as VALIDSIG with exit 0.
-      - >-
-        for f in texlive.tlpdb.sha512 ../install-tl*.sha512 ../update-tlmgr-latest.*.sha512; do
-        (cd "$(dirname "$f")" && f=$(basename "$f") && shasum -a 512 -c "$f" &&
-        gpgv --status-fd 1 --keyring {{.STAGING}}/tlpkg/gpg/pubring.gpg "$f.asc" "$f"
-        | awk '/^\[GNUPG:\] GOODSIG /{g=1} /^\[GNUPG:\] VALIDSIG .* {{.TL_KEY}}$/{v=1} END{exit !(g&&v)}')
-        || exit 1; done
-      # tlmgr downloads texlive.tlpdb.xz, not texlive.tlpdb, and checks the signed sha512
-      # against what it decompresses, so the pair must be the same bytes.
-      - xz -dc texlive.tlpdb.xz | cmp - texlive.tlpdb
-      # A versioned container next to its unversioned copy would double storage.
-      - test -z "$(find ../archive -name '*.r[0-9]*.tar.xz' | head -1)"
-      # Every container the tlpdb names must exist and match its sha512, so a tree caught
-      # between a tlpdb update and its containers is never published. Source containers
-      # are <name>.source.tar.xz although the tlpdb field is srccontainerchecksum.
-      - >-
-        awk '/^name /{n=$2}
-        /^containerchecksum /{print $2"  ../archive/"n".tar.xz"}
-        /^doccontainerchecksum /{print $2"  ../archive/"n".doc.tar.xz"}
-        /^srccontainerchecksum /{print $2"  ../archive/"n".source.tar.xz"}'
-        texlive.tlpdb | shasum -a 512 -c --quiet
-
-  guard:
-    desc: Print the staging size and fail when it exceeds LIMIT_MB (du -sm is portable; blocks, so slightly over apparent size)
-    cmds:
-      - 'used=$(du -sm {{.STAGING}} | cut -f1); echo "staging is ${used} MiB of the {{.LIMIT_MB}} MiB limit"; test "$used" -le {{.LIMIT_MB}}'
-
-  page:
-    desc: Upload site/index.html with the sync date filled in to the bucket root
-    dir: '{{.ROOT_DIR}}'
+  index:
+    desc: Upload site/index.html, dated now, to the bucket root as the landing page
     set: [pipefail]   # a failed sed must never upload an empty page
     cmds:
-      # Streamed, so the checked-in file is the only copy. Bucket root, outside the mirror
-      # prefix, so the stale listing never sees it. no-cache so the edge and browsers refetch
-      # the page every visit; the mirror files are not edge-cached at all.
-      - sed "s|<!--UPDATED-->|$(date -u '+%Y-%m-%d %H:%M UTC')|" site/index.html | aws s3 cp {{.AWS_FLAGS}} --content-type text/html --cache-control no-cache - s3://tlnet/index.html
+      # Streamed, so the checked-in file is the only copy. The key sits at the bucket root,
+      # outside the subtree, and a Cloudflare Transform Rule rewrites "/" to it; no-cache so
+      # the edge and browsers refetch the page every visit. The stamp is written once the
+      # upload landed, and report-mirror reads it.
+      - >-
+        d=$(date -u '+%Y-%m-%d %H:%M UTC') && sed "s|<!--UPDATED-->|$d|" {{.ROOT_DIR}}/site/index.html
+        | aws s3 cp {{.AWS_FLAGS}} --content-type text/html --cache-control no-cache - {{.S3}}/index.html
+        && echo "$d" > {{.RUN}}/index.txt
 
-  publish:
-    desc: Containers first, then tlpdb, then deletions, so no client sees a tlpdb that names a missing file
-    set: [pipefail]   # tee must never mask a failed upload
+  report-mirror:
+    desc: The mirror's row of the run summary, after the toolbox's and the engine's
+    silent: true
     cmds:
-      - mkdir -p {{.RUN}}
-      - aws s3 sync {{.AWS_FLAGS}} {{.STAGING}}/archive {{.BUCKET}}/archive | tee {{.RUN}}/publish.txt
-      # Never sync --delete. R2 lists a key after the keys it is a prefix of (install-tl after
-      # install-tl.zip.sha512.asc) while the CLI walks staging in byte order, so its merge-join
-      # emits both an upload and a delete for every such key and the delete can land last. The
-      # re-uploads that remain (15 keys) are harmless; deletions come from our own sorted diff.
-      - aws s3 sync {{.AWS_FLAGS}} {{.STAGING}} {{.BUCKET}} | tee -a {{.RUN}}/publish.txt
-      - aws s3 ls --recursive {{.BUCKET}}/ | sed 's/^[^ ]* *[^ ]* *[^ ]* //' > {{.RUN}}/remote.txt
-      - {task: stale}
-      # ponytail: one DeleteObject per key (free on R2, ~1 s each). Batch with s3api
-      # delete-objects if a release rollover ever removes thousands of files at once.
-      - xargs -r -I{} aws s3 rm s3://tlnet/{} < {{.RUN}}/stale.txt | tee -a {{.RUN}}/publish.txt
-
-  stale:
-    desc: Keys in RUN/remote.txt (the bucket listing) that staging no longer has, written to RUN/stale.txt
-    cmds:
-      - cd {{.STAGING}} && find . -type f | sed 's|^\./|{{.PREFIX}}/|' | LC_ALL=C sort > {{.RUN}}/local.txt
-      - test -s {{.RUN}}/local.txt   # an empty tree must never empty the bucket
-      - LC_ALL=C sort {{.RUN}}/remote.txt | LC_ALL=C comm -13 {{.RUN}}/local.txt - > {{.RUN}}/stale.txt
-
-  smoke:
-    desc: Read texlive.tlpdb.sha512 back through the public URL; proves the upload landed and the domain serves it
-    cmds:
-      - curl -fsS -m 30 {{.URL}}/tlpkg/texlive.tlpdb.sha512 | cmp - {{.STAGING}}/tlpkg/texlive.tlpdb.sha512
-
-  ping:
-    desc: Dead man's switch; healthchecks.io emails when a day passes without this (skipped if HEALTHCHECK_URL is unset)
-    cmds:
-      - test -z "$HEALTHCHECK_URL" || curl -fsS -m 10 --retry 3 -o /dev/null "$HEALTHCHECK_URL"
-
-  report:
-    desc: Append the run summary to the Actions job page (stdout elsewhere) from the fetch and publish output in RUN
-    silent: true   # do not echo the heredoc into the job log
-    cmds:
-      # rs: one number from the rsync --stats block. mb: bytes with commas to MB. n: aws s3 sync lines by verb.
-      - |
-        rs() { sed -n "s/^$1: *\([0-9,]*\).*/\1/p" {{.RUN}}/fetch.txt; }
-        mb() { awk -v b="$1" 'BEGIN { gsub(",", "", b); printf "%.1f MB", b / 1e6 }'; }
-        n() { grep -c "^$1:" {{.RUN}}/publish.txt || true; }
-        cat >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}" <<EOF
-        ## Sync succeeded, $(date -u '+%Y-%m-%d %H:%M UTC')
-
-        | Mirror | $(sed -n 's/^Number of files: .*reg: \([0-9,]*[0-9]\).*/\1/p' {{.RUN}}/fetch.txt) files, $(mb "$(rs 'Total file size')") at [{{.URL}}/]({{.URL}}/) |
-        |---|---|
-        | Fetched from CTAN | $(rs 'Number of regular files transferred') files, $(mb "$(rs 'Total transferred file size')"); $(rs 'Number of deleted files') removed upstream |
-        | Published to R2 | $(n upload) uploaded, $(n delete) deleted |
-        | Storage | $(du -sm {{.STAGING}} | cut -f1) MiB of the {{.LIMIT_MB}} MiB limit |
-        | Signature | texlive.tlpdb.sha512, the installers and the tlmgr updaters signed by TeX Live key {{.TL_KEY}}; texlive.tlpdb.xz matches; every container matches its tlpdb checksum |
-        | Read-back | [texlive.tlpdb.sha512]({{.URL}}/tlpkg/texlive.tlpdb.sha512) served from the domain matches the tree just published |
-        | Landing page | [{{.SITE}}]({{.SITE}}/), re-uploaded after this summary |
-
-        <details><summary>rsync stats</summary>
-
-        \`\`\`
-        $(cat {{.RUN}}/fetch.txt)
-        \`\`\`
-        </details>
-        EOF
+      - 'echo "| Landing page | [https://{{.HOST}}/](https://{{.HOST}}/), $(test -f {{.RUN}}/index.txt && echo "dated $(cat {{.RUN}}/index.txt)" || echo "not re-uploaded this run") |" >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"'

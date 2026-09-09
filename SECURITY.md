@@ -2,7 +2,7 @@
 
 ## What this mirror guarantees
 
-Every daily run verifies the tree before publishing it:
+Every daily run verifies what it publishes, batch by batch, before publishing it:
 
 - `texlive.tlpdb`, the three installers and the two `update-tlmgr-latest` updaters are
   checked against their SHA-512 and GPG signatures, with the TeX Live primary key
