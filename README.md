@@ -75,29 +75,32 @@ This setup ensures a consistent, reliable source for TeX Live updates built on
    and a custom domain pointing at the bucket. Set `HOST` to that domain in `Taskfile.yml`.
    For a landing page at `/`, add a Cloudflare Transform Rule rewriting the path `/` to
    `/index.html`, and put your own links and text in `site/index.html`.
-3. Add the repository secrets below. They are the whole requirement.
+3. Put the values below in a 1Password vault, point `op.env` at it, and add one repository
+   secret, `OP_SERVICE_ACCOUNT_TOKEN`, for a service account that can read the vault. That
+   is the whole requirement.
 4. Actions -> sync -> Run workflow. The first run finds an empty bucket and fills it; every
    run after that pushes the daily delta.
 5. Start it every day. Nothing in this repository schedules a run: add a `schedule:`
    trigger to `sync.yml` with a time of your own, or dispatch it from outside, as this
    mirror is.
 
-| Secret | What it is |
-| --- | --- |
-| `AWS_ACCESS_KEY_ID` | R2 API token with Object Read & Write on the bucket |
-| `AWS_SECRET_ACCESS_KEY` | That token's secret |
-| `AWS_ENDPOINT_URL` | `https://<account-id>.r2.cloudflarestorage.com` |
-| `HEALTHCHECK_URL` | Optional: a healthchecks.io ping URL |
+| Vault item | Field | What it is |
+| --- | --- | --- |
+| `r2` | `access_key_id` | R2 API token with Object Read & Write on the bucket |
+| `r2` | `secret_access_key` | That token's secret |
+| `r2` | `endpoint` | `https://<account-id>.r2.cloudflarestorage.com` |
+| `healthcheck` | `url` | Optional: a healthchecks.io ping URL |
 
-To test or run locally, with `task` and Docker (or Apple's `container`) installed:
+To test or run locally, with `task`, the 1Password CLI and Docker (or Apple's `container`)
+installed:
 
 ```sh
 task check    # render every command of the pipeline inside the toolbox image; diff it against render.txt
-task sync     # one run, with the three AWS_* variables and HEALTHCHECK_URL exported
+task sync     # one run; op run resolves op.env around it
 ```
 
 The image, the engine's verbs and the two workflows this repository calls are
-[katoptra/lib](https://github.com/katoptra/lib)'s: the include and the image at `v1`, the
+[katoptra/lib](https://github.com/katoptra/lib)'s: the include and the image at `v2`, the
 workflows at a release commit.
 
 Pull requests are welcome.

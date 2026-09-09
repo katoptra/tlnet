@@ -22,8 +22,8 @@ What is this mirror's own:
 - `site/index.html`: the landing page at `https://tlnet.ijosh.com/`, uploaded by `index`
   every run with the date filled in. It repeats the README's prose, so a README edit is
   usually a page edit too.
-- `render.txt`, `.taskrc.yml`, the two workflows and `dependabot.yml`: lib's contract, as
-  its README shows them. Nothing in this repo starts a run:
+- `op.env`, `render.txt`, `.taskrc.yml`, the two workflows and `dependabot.yml`: lib's
+  contract, as its README shows them. Nothing in this repo starts a run:
   [`jshvn/dispatch`](https://github.com/jshvn/dispatch), a Cloudflare Workflow, POSTs the
   dispatch daily at 03:30 UTC.
 
@@ -44,10 +44,12 @@ What is this mirror's own:
 - Objects stay under `systems/texlive/tlnet/`; every user's `tlmgr` config carries that
   path. `SOURCE` is CTAN's root and `FILTER` narrows the listing to the subtree, which is
   what keeps the prefix. `.state/` and `index.html` are the bucket's only other keys.
-- Secrets are exactly four: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL`,
-  `HEALTHCHECK_URL`. The three `AWS_*`, named in `PASS`, cross into the image by name and
-  are what the CLI reads; `HEALTHCHECK_URL` always crosses, and without it `ping` is
-  skipped. `AWS_REGION` is `auto` in the image.
+- Secrets live in 1Password, vault `jshvn/tlnet-mirror`: item `r2` (`access_key_id`,
+  `secret_access_key`, `endpoint`, `bucket`) and item `healthcheck` (`url`). `op.env` maps
+  them to `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL` and
+  `HEALTHCHECK_URL`, resolved by `op run` around the whole run and crossing into the image
+  by name. The repository's one secret is `OP_SERVICE_ACCOUNT_TOKEN`, a service account
+  that reads that vault. `AWS_REGION` is `auto` in the image.
 
 ## Must knows
 
@@ -146,8 +148,8 @@ Every check runs inside the toolbox image.
   `.run/upstream.txt` must hold only `systems/texlive/tlnet/` paths, none matching
   `\.r[0-9]+\.tar\.xz$`, none under `update-tlmgr-r`, and about 17,000 lines;
   `LIST_FLOOR` is half that.
-- `task plan` runs the read-only half against the real bucket, with the three `AWS_*`
-  variables exported: the listing, the state, the delta and its batches, nothing uploaded.
+- `task plan` runs the read-only half against the real bucket, through `op run`: the
+  listing, the state, the delta and its batches, nothing uploaded.
 - The engine's verbs, `diff`, `split`, `merge`, `retry` and the signed checks `prepare`
   and `verify`, are checked in lib: `cd ../lib/examples/rsync && task run -- task offline`.
 - `publish`, `checkpoint`, `delete`, `rebuild` and `index` need credentials; a fork tests
