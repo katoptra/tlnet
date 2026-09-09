@@ -7,36 +7,25 @@ the pipeline refuses to run past 10 GB upstream.
 
 `Taskfile.yml` and its comments are the design of what is this mirror's own; the rsync
 engine and the toolbox it includes from [katoptra/lib](https://github.com/katoptra/lib)
-are the design of everything a mirror shares, and lib's README is their reference.
+are the design of everything a mirror shares, and lib's README is their reference: the
+verbs and their vars, the image and its tools, the workflows and their pins, the include
+rules and how a verb is overridden are documented there once and not repeated here.
 
-Everything is in a few files:
+What is this mirror's own:
 
-- `Taskfile.yml`: the mirror's identity in root vars, the two includes from lib at `v1`
-  (the toolbox and the rsync engine, flattened into one namespace), and `pipeline`:
-  `clock -> list -> state -> rebuild? -> diff -> split -> prepare -> batches -> delete -> reconcile? -> index -> smoke -> report -> ping`,
-  where `batches` runs `fetch -> verify -> publish -> checkpoint` per batch. Two verbs are
-  this mirror's own: `index` (the landing page) and `report-mirror` (its row of the
-  report). Bare `task` prints the menu; `task sync` is one run; `task check` renders the
-  pipeline inside the image and diffs it against `render.txt`.
-- `render.txt`: every command of the pipeline as rendered inside the image, committed. A
-  pull request that changes what a run executes changes it, and that diff is the review.
-- `.taskrc.yml`: trusts `raw.githubusercontent.com` for the includes, refetched hourly.
+- `Taskfile.yml`: the identity in root vars (`SOURCE`, `HOST`, `BUCKET`, `TL`, `TL_KEY`,
+  `CEILING_GB`, `LIST_FLOOR`, `OWN`, `FILTER`) and two verbs: `index` (the landing page)
+  and `report-mirror` (its row of the report). The pipeline is the engine's. Bare `task`
+  prints the menu; `task sync` is one run; `task check` renders the pipeline inside the
+  image and diffs it against `render.txt`.
 - `aws.config`: single-part uploads; the multipart threshold sits above the largest file.
 - `site/index.html`: the landing page at `https://tlnet.ijosh.com/`, uploaded by `index`
   every run with the date filled in. It repeats the README's prose, so a README edit is
   usually a page edit too.
-- `ghcr.io/katoptra/toolbox:rsync-v1`, built and pinned in lib: the toolbox image, and so
-  the pipeline's environment. Every run happens inside it, locally and in Actions alike;
-  `task run -- task <args>` runs any verb in it with the repo at `/work`.
-- `.github/workflows/sync.yml`: ten lines calling lib's reusable `sync.yml`:
-  `workflow_dispatch` alone, one input `vars` (`KEY=value` pairs for the pipeline),
-  `timeout-minutes: 60`, `secrets: inherit`, `actions: write` for the chain. Nothing in
-  this repo starts it: [`jshvn/dispatch`](https://github.com/jshvn/dispatch), a Cloudflare
-  Workflow, POSTs the dispatch daily at 03:30 UTC. `check.yml` calls lib's `check.yml` on
-  pull requests: `task check` inside the image. Both are pinned to lib's release commit
-  with the version in a trailing comment, because this repository's Actions policy
-  requires a full SHA on every `uses:`; Dependabot bumps them on a lib release. The
-  runner supplies nothing but what lib's action installs.
+- `op.env`, `render.txt`, `.taskrc.yml`, the two workflows and `dependabot.yml`: lib's
+  contract, as its README shows them. Nothing in this repo starts a run:
+  [`jshvn/dispatch`](https://github.com/jshvn/dispatch), a Cloudflare Workflow, POSTs the
+  dispatch daily at 03:30 UTC.
 
 `README.md` is for users. Operational detail belongs here and in Taskfile comments.
 
@@ -47,25 +36,20 @@ Everything is in a few files:
   storage or uploads against the 6.8 GB baseline.
 - No shell scripts. Logic lives in `Taskfile.yml` and, for everything shared with the
   other mirrors, in lib; a change to how bytes move or how the tree is verified goes to
-  the engine, where every mirror gets it. The workflows are callers of lib's.
-- Tools are the toolbox image's, each pinned by checksum in lib's lock: `rsync`, `aws` (CLI
-  v2), `gpgv`, `shasum`, `xz`, `curl`, `task`. The pipeline's network endpoints are exactly
-  dante, R2, the public domain and healthchecks.io; a run adds ghcr.io for the image and
-  raw.githubusercontent.com for the includes.
-- Two includes, one namespace. A verb both lib and this file define is a parse error unless
-  the include excludes it: `report-engine` and `report-mirror` on the toolbox include,
-  `index` on the engine's. Never redefine a toolbox var (`RUN`, `ENGINE`, `PASS_ENV`) or an
-  engine var (`S3`, `URL`, `STATE`, `STAGING`, `RSYNC`, `CURL`, `AWS_FLAGS`). Inside an
-  engine verb a root var shadows a command-line `KEY=value`, so `MAX_BATCHES` and
-  `RECONCILE` stay out of the root vars and a run sets them: `task sync -- RECONCILE=true`.
+  the engine, where every mirror gets it. Extension is a hook, never a copy.
+- Excludes are `report-engine` and `report-mirror` on the toolbox include, `index` on the
+  engine's. Never redefine a lib var. Inside an engine verb a root var shadows a
+  command-line `KEY=value`, so `MAX_BATCHES` and `RECONCILE` stay out of the root vars and
+  a run sets them: `task sync -- RECONCILE=true`.
 - Objects stay under `systems/texlive/tlnet/`; every user's `tlmgr` config carries that
   path. `SOURCE` is CTAN's root and `FILTER` narrows the listing to the subtree, which is
   what keeps the prefix. `.state/` and `index.html` are the bucket's only other keys.
-- Secrets are exactly four: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
-  `HEALTHCHECK_URL`. lib's workflow exports every repository secret into the run's
-  environment; the three `R2_*`, named in `PASS`, cross into the image by name, and the
-  Taskfile's `env:` turns them into the `AWS_*` variables the CLI reads, in memory.
-  `HEALTHCHECK_URL` always crosses; without it, `ping` is skipped.
+- Secrets live in 1Password, vault `jshvn/tlnet-mirror`: item `r2` (`access_key_id`,
+  `secret_access_key`, `endpoint`, `bucket`) and item `healthcheck` (`url`). `op.env` maps
+  them to `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL` and
+  `HEALTHCHECK_URL`, resolved by `op run` around the whole run and crossing into the image
+  by name. The repository's one secret is `OP_SERVICE_ACCOUNT_TOKEN`, a service account
+  that reads that vault. `AWS_REGION` is `auto` in the image.
 
 ## Must knows
 
@@ -164,10 +148,10 @@ Every check runs inside the toolbox image.
   `.run/upstream.txt` must hold only `systems/texlive/tlnet/` paths, none matching
   `\.r[0-9]+\.tar\.xz$`, none under `update-tlmgr-r`, and about 17,000 lines;
   `LIST_FLOOR` is half that.
-- `task plan` runs the read-only half against the real bucket, with the three `R2_*`
-  variables exported: the listing, the state, the delta and its batches, nothing uploaded.
-- The engine's verbs (`diff`, `split`, `merge`, `retry`, and the signed checks `prepare`
-  and `verify`) are checked in lib: `cd ../lib/examples/rsync && task run -- task offline`.
+- `task plan` runs the read-only half against the real bucket, through `op run`: the
+  listing, the state, the delta and its batches, nothing uploaded.
+- The engine's verbs, `diff`, `split`, `merge`, `retry` and the signed checks `prepare`
+  and `verify`, are checked in lib: `cd ../lib/examples/rsync && task run -- task offline`.
 - `publish`, `checkpoint`, `delete`, `rebuild` and `index` need credentials; a fork tests
   them with `BUCKET` in `Taskfile.yml` pointed at a scratch bucket and
   `task sync -- MAX_BATCHES=1 BATCH_GB=1`. A root var shadows the command line inside an
