@@ -11,7 +11,7 @@ version: '3'
 
 vars:
   SOURCE: rsync://rsync.dante.ctan.org/CTAN/   # the master; a secondary mirror can lag it by a day
-  HOST: tlnet.ijosh.com                         # a fork changes this line and the text in site/index.html
+  HOST: tlnet.katoptra.org                      # a fork changes this line and the text in site/index.html
   BUCKET: tlnet                                 # bucket name; objects sit at its root under CTAN's own paths
   TL: systems/texlive/tlnet                     # the signed subtree, which is the whole mirror
   TL_KEY: C78B82D8C79512F79CC0D7C80D5E5D9106BAB6BC   # tug.org/texlive/verify.html

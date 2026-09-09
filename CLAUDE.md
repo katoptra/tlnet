@@ -1,7 +1,7 @@
 # tlnet
 
 A daily mirror of `CTAN/systems/texlive/tlnet` (the directory `tlmgr` installs and updates
-from) on Cloudflare R2, served at `https://tlnet.ijosh.com/systems/texlive/tlnet/`. About
+from) on Cloudflare R2, served at `https://tlnet.katoptra.org/systems/texlive/tlnet/`. About
 17,000 objects and 6.8 GB; the largest file is ~145 MB. It runs inside R2's free tier, and
 the pipeline refuses to run past 10 GB upstream.
 
@@ -19,7 +19,7 @@ What is this mirror's own:
   prints the menu; `task sync` is one run; `task check` renders the pipeline inside the
   image and diffs it against `render.txt`.
 - `aws.config`: single-part uploads; the multipart threshold sits above the largest file.
-- `site/index.html`: the landing page at `https://tlnet.ijosh.com/`, uploaded by `index`
+- `site/index.html`: the landing page at `https://tlnet.katoptra.org/`, uploaded by `index`
   every run with the date filled in. It repeats the README's prose, so a README edit is
   usually a page edit too.
 - `op.env`, `render.txt`, `.taskrc.yml`, the two workflows and `dependabot.yml`: lib's
@@ -157,5 +157,5 @@ Every check runs inside the toolbox image.
   `task sync -- MAX_BATCHES=1 BATCH_GB=1`. A root var shadows the command line inside an
   engine verb, so `task sync -- BUCKET=x` changes nothing.
 - Is the mirror fresh?
-  `curl -sI https://tlnet.ijosh.com/systems/texlive/tlnet/tlpkg/texlive.tlpdb.sha512`
+  `curl -sI https://tlnet.katoptra.org/systems/texlive/tlnet/tlpkg/texlive.tlpdb.sha512`
   and read `last-modified`.
