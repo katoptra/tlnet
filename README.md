@@ -13,14 +13,14 @@ platform, docs and sources. About 17,000 files and 6.8 GB.
 TeX Live and TinyTeX both use `tlmgr`:
 
 ```sh
-tlmgr option repository https://tlnet.ijosh.com/systems/texlive/tlnet/
+tlmgr option repository https://tlnet.katoptra.org/systems/texlive/tlnet/
 tlmgr update --self --all
 ```
 
 For a fresh install, give the installer the same URL:
 
 ```sh
-install-tl -repository https://tlnet.ijosh.com/systems/texlive/tlnet/
+install-tl -repository https://tlnet.katoptra.org/systems/texlive/tlnet/
 ```
 
 To go back to CTAN's mirror rotation: `tlmgr option repository ctan`.
@@ -46,7 +46,7 @@ them; the landing page is this mirror's own verb:
    lands last, after every container it names.
 4. **`delete` `reconcile`** — drop the keys that left upstream, and once a day sweep the
    bucket against the state for anything neither owns.
-5. **`index`** — upload the landing page at `https://tlnet.ijosh.com/`, dated.
+5. **`index`** — upload the landing page at `https://tlnet.katoptra.org/`, dated.
 6. **`smoke` `report` `ping`** — read `texlive.tlpdb.sha512` and a sample of the run's keys
    back over the public domain, summarise what landed, and ping healthchecks.io. Silence
    is the alert.
@@ -56,7 +56,7 @@ them; the landing page is this mirror's own verb:
 Check `last-modified` on the index:
 
 ```sh
-curl -sI https://tlnet.ijosh.com/systems/texlive/tlnet/tlpkg/texlive.tlpdb.sha512
+curl -sI https://tlnet.katoptra.org/systems/texlive/tlnet/tlpkg/texlive.tlpdb.sha512
 ```
 
 ## Why use this?
