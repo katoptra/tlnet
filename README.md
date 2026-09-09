@@ -84,16 +84,16 @@ This setup ensures a consistent, reliable source for TeX Live updates built on
 
 | Secret | What it is |
 | --- | --- |
-| `R2_ACCOUNT_ID` | The Cloudflare account the bucket lives in |
-| `R2_ACCESS_KEY_ID` | R2 API token with Object Read & Write on the bucket |
-| `R2_SECRET_ACCESS_KEY` | That token's secret |
+| `AWS_ACCESS_KEY_ID` | R2 API token with Object Read & Write on the bucket |
+| `AWS_SECRET_ACCESS_KEY` | That token's secret |
+| `AWS_ENDPOINT_URL` | `https://<account-id>.r2.cloudflarestorage.com` |
 | `HEALTHCHECK_URL` | Optional: a healthchecks.io ping URL |
 
 To test or run locally, with `task` and Docker (or Apple's `container`) installed:
 
 ```sh
 task check    # render every command of the pipeline inside the toolbox image; diff it against render.txt
-task sync     # one run, with the three R2_* variables and HEALTHCHECK_URL exported
+task sync     # one run, with the three AWS_* variables and HEALTHCHECK_URL exported
 ```
 
 The image, the engine's verbs and the two workflows this repository calls are
