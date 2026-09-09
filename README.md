@@ -84,7 +84,9 @@ This setup ensures a consistent, reliable source for TeX Live updates built on
    trigger to `sync.yml` with a time of your own, or dispatch it from outside, as this
    mirror is.
 
-| Vault item | Field | What it is |
+The references in `op.env` name one item, `tlnet`, with two sections:
+
+| Section | Field | What it is |
 | --- | --- | --- |
 | `r2` | `access_key_id` | R2 API token with Object Read & Write on the bucket |
 | `r2` | `secret_access_key` | That token's secret |

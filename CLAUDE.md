@@ -44,12 +44,12 @@ What is this mirror's own:
 - Objects stay under `systems/texlive/tlnet/`; every user's `tlmgr` config carries that
   path. `SOURCE` is CTAN's root and `FILTER` narrows the listing to the subtree, which is
   what keeps the prefix. `.state/` and `index.html` are the bucket's only other keys.
-- Secrets live in 1Password, vault `jshvn/tlnet-mirror`: item `r2` (`access_key_id`,
-  `secret_access_key`, `endpoint`, `bucket`) and item `healthcheck` (`url`). `op.env` maps
+- Secrets live in 1Password, vault `Katoptra`, item `tlnet`: section `r2` (`access_key_id`,
+  `secret_access_key`, `endpoint`, `bucket`) and section `healthcheck` (`url`). `op.env` maps
   them to `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL` and
   `HEALTHCHECK_URL`, resolved by `op run` around the whole run and crossing into the image
-  by name. The repository's one secret is `OP_SERVICE_ACCOUNT_TOKEN`, a service account
-  that reads that vault. `AWS_REGION` is `auto` in the image.
+  by name. The organization secret `OP_SERVICE_ACCOUNT_TOKEN`, inherited by every
+  repository, is a service account that reads that vault. `AWS_REGION` is `auto` in the image.
 
 ## Must knows
 
