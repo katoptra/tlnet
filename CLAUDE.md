@@ -1,33 +1,17 @@
 # tlnet
 
-A daily mirror of `CTAN/systems/texlive/tlnet` (the directory `tlmgr` installs and updates
-from) on Cloudflare R2, served at `https://tlnet.katoptra.org/systems/texlive/tlnet/`. About
-17,000 objects and 6.8 GB; the largest file is ~145 MB. It runs inside R2's free tier, and
-the pipeline refuses to run past 10 GB upstream.
+A daily mirror of `CTAN/systems/texlive/tlnet`, the directory `tlmgr` installs and updates
+from, on Cloudflare R2, served at `https://tlnet.katoptra.org/systems/texlive/tlnet/`.
+`README.md` says what it mirrors, how to use it, how it works and how to fork it;
+[katoptra/lib](https://github.com/katoptra/lib)'s README is the manual for everything the
+mirrors share. This file is what a change must not break.
 
-`Taskfile.yml` and its comments are the design of what is this mirror's own; the rsync
-engine and the toolbox it includes from [katoptra/lib](https://github.com/katoptra/lib)
-are the design of everything a mirror shares, and lib's README is their reference: the
-verbs and their vars, the image and its tools, the workflows and their pins, the include
-rules and how a verb is overridden are documented there once and not repeated here.
-
-What is this mirror's own:
-
-- `Taskfile.yml`: the identity in root vars (`SOURCE`, `HOST`, `BUCKET`, `TL`, `TL_KEY`,
-  `CEILING_GB`, `LIST_FLOOR`, `OWN`, `FILTER`) and two verbs: `index` (the landing page)
-  and `report-mirror` (its row of the report). The pipeline is the engine's. Bare `task`
-  prints the menu; `task sync` is one run; `task check` renders the pipeline inside the
-  image and diffs it against `render.txt`.
-- `aws.config`: single-part uploads; the multipart threshold sits above the largest file.
-- `site/index.html`: the landing page at `https://tlnet.katoptra.org/`, uploaded by `index`
-  every run with the date filled in. It repeats the README's prose, so a README edit is
-  usually a page edit too.
-- `op.env`, `render.txt`, `.taskrc.yml`, the two workflows and `dependabot.yml`: lib's
-  contract, as its README shows them. Nothing in this repo starts a run:
-  [`jshvn/dispatch`](https://github.com/jshvn/dispatch), a Cloudflare Workflow, POSTs the
-  dispatch daily at 03:30 UTC.
-
-`README.md` is for users. Operational detail belongs here and in Taskfile comments.
+Nothing in this repo starts a run: an external scheduler dispatches `sync.yml` daily at
+03:30 UTC, which is the hour `reconcile` keys on. `Taskfile.yml` and its comments are the
+design of what is this mirror's own: the identity and the `FILTER` in root vars, `index`
+(the landing page) and `report-mirror`. `aws.config` keeps every upload single-part.
+`site/index.html` is the landing page, uploaded dated every run; it repeats the README's
+"How to use", so a README edit there is usually a page edit too.
 
 ## Constraints
 
@@ -44,12 +28,6 @@ What is this mirror's own:
 - Objects stay under `systems/texlive/tlnet/`; every user's `tlmgr` config carries that
   path. `SOURCE` is CTAN's root and `FILTER` narrows the listing to the subtree, which is
   what keeps the prefix. `.state/` and `index.html` are the bucket's only other keys.
-- Secrets live in 1Password, vault `Katoptra`, item `tlnet`: section `r2` (`access_key_id`,
-  `secret_access_key`, `endpoint`, `bucket`) and section `healthcheck` (`url`). `op.env` maps
-  them to `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL` and
-  `HEALTHCHECK_URL`, resolved by `op run` around the whole run and crossing into the image
-  by name. The organization secret `OP_SERVICE_ACCOUNT_TOKEN`, inherited by every
-  repository, is a service account that reads that vault. `AWS_REGION` is `auto` in the image.
 
 ## Must knows
 

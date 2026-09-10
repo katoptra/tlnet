@@ -1,20 +1,18 @@
 # Contributing
 
-Pull requests are welcome, especially ones that make the pipeline smaller.
+The [organization's rules](https://github.com/katoptra/.github/blob/main/CONTRIBUTING.md)
+apply, and [katoptra/lib](https://github.com/katoptra/lib)'s README is the contract for
+everything this mirror includes. This repository adds three.
 
-## Ground rules
-
-- All logic lives in `Taskfile.yml` and in [katoptra/lib](https://github.com/katoptra/lib),
-  whose toolbox and rsync engine it includes at `v2`. lib's README is the contract: the
-  verbs, the vars, the image and its tools, the workflows and how they are pinned. A change
-  to how bytes move or how the tree is verified belongs in the engine, where every mirror
-  gets it; the filter that selects the subtree, the landing page and its row of the report
-  belong here. Extension is a hook, never a copy of an engine verb.
-- The mirror must stay inside the R2 free tier (10 GB, 1M Class A ops a month), and the
+- **The mirror stays inside the R2 free tier** (10 GB, 1M Class A ops a month), and the
   pipeline refuses to run past 10 GB upstream. If a change adds storage or upload
   operations, say by how much in the PR.
-- Objects stay under `systems/texlive/tlnet/`; every user's `tlmgr` config carries that
-  path.
+- **Objects stay under `systems/texlive/tlnet/`**; every user's `tlmgr` config carries that
+  path. `SOURCE` is CTAN's root and `FILTER` narrows the listing, which is what keeps the
+  prefix. `.state/` and `index.html` are the bucket's only other keys.
+- **A change to how bytes move or how the tree is verified belongs in lib's rsync
+  engine**, where every mirror gets it. The filter, the landing page and its row of the
+  report belong here. Extension is a hook, never a copy of an engine verb.
 
 ## Checking a change
 
@@ -33,8 +31,3 @@ lib: `cd lib/examples/rsync && task run -- task offline`.
 
 Uploads need real R2 credentials and have no mock; test them on your own fork (see "Want
 your own?" in the README) with `BUCKET` in `Taskfile.yml` pointed at a scratch bucket.
-
-## Commits
-
-`<type>(<scope>): <summary>` in the imperative, under 75 characters. Types: feat, fix,
-refactor, docs, test, chore, ci. One PR per change; PRs are squash merged.

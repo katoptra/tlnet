@@ -10,33 +10,26 @@ Every daily run verifies what it publishes, batch by batch, before publishing it
   rejected.
 - `texlive.tlpdb.xz`, the copy `tlmgr` downloads, must decompress to the verified
   `texlive.tlpdb` byte for byte.
-- Every package container is checked against the `containerchecksum` recorded in the
-  signed tlpdb.
-- A tree that fails any check is never published; the previous good copy stays live.
+- Every package container is checked against the checksum recorded in the signed tlpdb, and
+  the tlpdb goes live only after every container it names is in the bucket.
+- A batch that fails any check is not uploaded; the bucket stays at its last checkpoint.
+- After each publish, `texlive.tlpdb.sha512` and a sample of the run's keys are read back
+  through the domain and compared with what was uploaded.
 
 Those are the only files TeX Live signs. The rest of the tree (`install-tl`,
 `install-tl-windows.bat`, `texlive.tlpdb.md5` and the helper trees under `tlpkg/`) is
-copied as-is; no TeX Live tool fetches them from a repository URL.
+copied as served; no TeX Live tool fetches them from a repository URL. `tlmgr` repeats the
+signature check on the client, so a tampered mirror is rejected there too.
 
-`tlmgr` repeats the signature check on the client, so a tampered mirror is rejected there
-too. After each publish, `texlive.tlpdb.sha512` is read back through the domain and compared
-with what was uploaded.
-
-Uploads are not atomic. Containers land first and the tlpdb that names them a minute or so
-later, and containers are overwritten in place, so a `tlmgr` run that overlaps the publish
-can see checksum errors. Rerun it.
+Uploads are batched. Containers land before the tlpdb that names them, so a `tlmgr` run
+that overlaps a publish sees the previous tlpdb, never a tlpdb naming a file that is not
+there.
 
 ## Reporting
 
 If you find a way to serve altered or unsigned content through `tlnet.katoptra.org`, or a
 weakness in the pipeline itself, report it privately through
 [GitHub's vulnerability reporting](https://github.com/katoptra/tlnet/security/advisories/new).
-Please do not open a public issue for it.
-
-Problems with the packages themselves (a malicious or broken upstream package) belong to
-[TeX Live](https://tug.org/texlive/) and [CTAN](https://ctan.org/); this mirror copies
-what they publish, byte for byte.
-
-## Supported versions
-
-Only the current `main` branch and the live mirror. There are no releases.
+Please do not open a public issue for it. Problems with the packages themselves belong to
+[TeX Live](https://tug.org/texlive/) and [CTAN](https://ctan.org/); this mirror copies what
+they publish.
