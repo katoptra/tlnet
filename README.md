@@ -14,7 +14,7 @@
 <p align="center">
   <a href="https://github.com/katoptra/tlnet/actions/workflows/sync.yml"><img src="https://github.com/katoptra/tlnet/actions/workflows/sync.yml/badge.svg" alt="sync"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/katoptra/tlnet" alt="license"></a>
-  <a href="https://github.com/katoptra/tlnet/actions/workflows/sync.yml"><img src="https://healthchecks.io/badge/8955b5d3-ba3b-4e8a-ac39-8501494333f5/otTXcui6-2.svg" alt="mirror"></a>
+  <a href="https://github.com/katoptra/tlnet/actions/workflows/sync.yml"><img src="https://healthchecks.io/b/2/f34567b9-d513-41a5-93d8-56fb69d25257.svg" alt="mirror"></a>
 </p>
 
 A daily mirror of `CTAN/systems/texlive/tlnet` on Cloudflare R2, served at
