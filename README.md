@@ -1,8 +1,21 @@
-# tlnet
+<p align="center">
+  <a href="https://github.com/katoptra">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://katoptra.org/brand/katoptra-mark-dark-224.png">
+      <img src="https://katoptra.org/brand/katoptra-mark-224.png" alt="Katoptra" width="112">
+    </picture>
+  </a>
+</p>
 
-[![sync](https://github.com/katoptra/tlnet/actions/workflows/sync.yml/badge.svg)](https://github.com/katoptra/tlnet/actions/workflows/sync.yml)
-[![license](https://img.shields.io/github/license/katoptra/tlnet)](LICENSE)
-[![mirror](https://healthchecks.io/badge/8955b5d3-ba3b-4e8a-ac39-8501494333f5/otTXcui6-2.svg)](https://github.com/katoptra/tlnet/actions/workflows/sync.yml)
+<h1 align="center">tlnet</h1>
+
+<p align="center">A daily mirror of CTAN's tlnet subtree, the directory tlmgr installs from.</p>
+
+<p align="center">
+  <a href="https://github.com/katoptra/tlnet/actions/workflows/sync.yml"><img src="https://github.com/katoptra/tlnet/actions/workflows/sync.yml/badge.svg" alt="sync"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/katoptra/tlnet" alt="license"></a>
+  <a href="https://github.com/katoptra/tlnet/actions/workflows/sync.yml"><img src="https://healthchecks.io/badge/8955b5d3-ba3b-4e8a-ac39-8501494333f5/otTXcui6-2.svg" alt="mirror"></a>
+</p>
 
 A daily mirror of `CTAN/systems/texlive/tlnet` on Cloudflare R2, served at
 `https://tlnet.katoptra.org/systems/texlive/tlnet/`. This is the directory `tlmgr` installs
