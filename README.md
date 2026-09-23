@@ -152,7 +152,8 @@ run after that moves the day's delta.
 
 Nothing in this repository schedules a run. Add a `schedule:` trigger to
 `.github/workflows/sync.yml` with a time of your own, or dispatch it from outside as this
-mirror is. A run that starts in hour 03 UTC also sweeps the bucket against the state.
+mirror is. Whatever the time, a run also sweeps the bucket against the state once the last
+sweep is 24 h old.
 
 ## Operating it
 

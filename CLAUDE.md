@@ -6,8 +6,8 @@ from, on Cloudflare R2, served at `https://tlnet.katoptra.org/systems/texlive/tl
 [katoptra/lib](https://github.com/katoptra/lib)'s README is the manual for everything the
 mirrors share. This file is what a change must not break.
 
-Nothing in this repo starts a run: an external scheduler dispatches `sync.yml` daily at
-03:30 UTC, which is the hour `reconcile` keys on. `Taskfile.yml` and its comments are the
+Nothing in this repo starts a run: an external scheduler dispatches `sync.yml` daily, and
+`reconcile` does not care when. `Taskfile.yml` and its comments are the
 design of what is this mirror's own: the identity and the `FILTER` in root vars, `index`
 (the landing page) and `report-mirror`. `aws.config` keeps every upload single-part.
 `site/index.html` is the landing page, uploaded dated every run; it repeats the README's
@@ -55,10 +55,12 @@ Each of these is a bug that has happened or a bill that would. Do not undo them.
   `Cache-Control: no-cache`, and `OWN: index.html` keeps `reconcile` from deleting it as an
   orphan. A Cloudflare Transform Rule rewrites `/` to `/index.html`; without it the root is
   a 404 and the mirror still works.
-- **`reconcile` runs in the run that starts in hour 03 UTC**, which the 03:30 dispatch is,
-  so the bucket is swept daily: the state is rebuilt from a listing, and every key neither
-  upstream, `.state/` nor `OWN` holds is deleted. A run queued behind a long one can start
-  in 04 and skip the day; `task sync -- RECONCILE=true` asks for it by hand.
+- **`reconcile` runs once the last one is 24 h old**, by lib's `due` and
+  `.state/reconciled`, never by the hour a run starts. With one run a day, nearly every
+  run sweeps the bucket: the state is rebuilt from a listing, and every key neither
+  upstream, `.state/` nor `OWN` holds is deleted. A run that starts over half an hour
+  earlier than the last sweep's, or a chained run while batches remain, leaves it to the
+  next; `task sync -- RECONCILE=true` asks for it by hand.
 - **Do not trust the job log for counts.** `report` counts from `.run/`, never the log.
   Judge completeness by `smoke`, never by counting.
 - **A failed run is the only alert.** `split` fails before anything is fetched if upstream
