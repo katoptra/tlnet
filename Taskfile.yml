@@ -1,46 +1,49 @@
-# tlnet: a daily mirror of systems/texlive/tlnet from CTAN, in a Cloudflare R2 bucket.
-# tlmgr installs and updates TeX Live from this tree. Each run makes a list diff. It
-# compares the listing of the subtree on dante with the state that the last run put in
-# the bucket.
+# This mirror keeps a copy of systems/texlive/tlnet from CTAN in a Cloudflare R2 bucket.
+# tlmgr installs and updates TeX Live from this tree. A daily run compares the listing on
+# dante with the state that the last run put in the bucket (a list diff).
 #
-# The toolbox and the rsync engine are katoptra/lib's. This file includes the two below,
-# at v2, with `flatten: true`. lib's README tells which verbs and vars each one supplies.
-# The items here are for this mirror only:
+# The toolbox and the rsync engine are from katoptra/lib. Its README shows the items that
+# each one supplies. This file includes them below the vars, at v2, with `flatten: true`.
+#
+# The items in this file are for this mirror only:
 #   - the root vars that identify the mirror and set its limits
 #   - FILTER, which keeps only the subtree and the timestamp file of CTAN in the listing
 #   - CANARY and FRESH_KEY, two files that smoke reads through the domain
 #   - index, which uploads the landing page to the bucket root
 #   - report-mirror, which adds the row of this mirror to the run summary
-# The secrets are the names in op.env. The toolbox gets their values from the vault and
-# gives each value to the image by its name.
+#
+# The secrets are the names in op.env. The toolbox gets their values from the vault in
+# 1Password. It gives each value to the image with its name, not on a command line.
 version: '3'
 
 vars:
-  # The master. A secondary mirror can be one day behind it.
+  # SOURCE is the CTAN master. A secondary mirror can get a change one day after the master.
   SOURCE: rsync://rsync.dante.ctan.org/CTAN/
   # A fork changes this line and the text in site/index.html.
   HOST: tlnet.katoptra.org
-  # The bucket name. The key of each file from CTAN is its path on CTAN, from the
-  # bucket root.
+  # BUCKET is the name of the bucket. The key of each file from CTAN is its path on CTAN,
+  # from the bucket root.
   BUCKET: tlnet
-  # The signed subtree. From CTAN, the mirror has only this subtree and the timestamp file.
+  # TL is the signed subtree. From CTAN, the mirror has only this subtree and the
+  # timestamp file.
   TL: systems/texlive/tlnet
   TL_KEY: C78B82D8C79512F79CC0D7C80D5E5D9106BAB6BC   # tug.org/texlive/verify.html
   # The run stops if upstream is larger than this number of decimal GB.
   CEILING_GB: 10
-  # A listing of this number of lines or less is truncated. tlnet has about 17,000 files.
+  # A listing of this number of lines or less is truncated. tlnet has approximately
+  # 17,000 files.
   LIST_FLOOR: 15000
-  # The landing page: a key at the bucket root that upstream does not have. reconcile
-  # does not remove it.
+  # OWN is the landing page, a key at the bucket root that is not in the listing.
+  # reconcile does not remove it.
   OWN: index.html
   # smoke reads this file through the domain as a Perl client, and compares it with the
   # copy in the bucket. If Browser Integrity Check is on, the domain gives a 403 and the
   # run stops. The file has no links. Thus, this canary cannot find an HTML rewriter of
   # the zone.
   CANARY: systems/texlive/tlnet/tlpkg/texlive.tlpdb.sha512
-  # The clock of the CTAN master. It changes each hour, but the subtree can stay the same
-  # for weeks before a TeX Live release. The fresh verb stops the run if this clock is more
-  # than FRESH_HOURS (24) before the time of the check.
+  # FRESH_KEY is the clock of the CTAN master. It changes each hour, but the subtree can
+  # stay the same for weeks before each new version of TeX Live. The fresh verb stops the
+  # run if this clock is more than FRESH_HOURS (24) before the time of the check.
   FRESH_KEY: timestamp
   # SOURCE is the root of CTAN. FILTER keeps two items of CTAN in the listing: the subtree
   # and the timestamp file at the root. Thus, each key in the subtree keeps its
@@ -49,7 +52,7 @@ vars:
   #   1. The two `--exclude` rules remove each copy that has a revision number in its
   #      name. tlmgr downloads foo.tar.xz, a symlink to foo.r123.tar.xz upstream. With
   #      -L, rsync sends a file, not a symlink, at the stable name. If the bucket has the
-  #      two names, the tree becomes two times larger.
+  #      two names, it contains two copies of each such file.
   #   2. The `--include` rules let rsync go down the path to the subtree. The rule for
   #      /timestamp keeps FRESH_KEY, the clock file at the root, in the listing.
   #   3. The last rule removes all other paths.
@@ -77,10 +80,12 @@ tasks:
     cmds:
       # sed writes the page, with the date, to RUN/index.html, and aws uploads that file
       # only if sed has no error. Thus, if sed has an error, the bucket does not get an
-      # empty page. The key is at the bucket root, not in the subtree. A Cloudflare
-      # Transform Rule changes the path "/" to "/index.html". With no-cache, the edge and
-      # each browser get the page again each time. The command writes the date to
-      # RUN/index.txt only after aws completes the upload, and report-mirror reads it there.
+      # empty page. The command writes the date to RUN/index.txt only after aws completes
+      # the upload, and report-mirror reads it there.
+      #
+      # The key is at the bucket root, not in the subtree. A Cloudflare Transform Rule
+      # changes the path "/" to "/index.html". With no-cache, the edge and each browser get
+      # the page again each time that a person opens it.
       - >-
         d=$(date -u '+%Y-%m-%d %H:%M UTC')
         && sed "s|<!--UPDATED-->|$d|" {{.ROOT_DIR}}/site/index.html > {{.RUN}}/index.html
