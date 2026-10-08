@@ -74,17 +74,18 @@ includes:
 tasks:
   index:
     desc: Upload site/index.html, dated now, to the bucket root as the landing page
-    set: [pipefail]   # if sed has an error, aws must not upload an empty page
     cmds:
-      # sed sends the page, with the date, to aws through a pipe. Thus, the file in the
-      # repository is the only copy on disk. The key is at the bucket root, not in the
-      # subtree. A Cloudflare Transform Rule changes the path "/" to "/index.html". With
-      # no-cache, the edge and each browser get the page again each time. The command
-      # writes the date to RUN/index.txt only after aws completes the upload, and
-      # report-mirror reads it there.
+      # sed writes the page, with the date, to RUN/index.html, and aws uploads that file
+      # only if sed has no error. Thus, if sed has an error, the bucket does not get an
+      # empty page. The key is at the bucket root, not in the subtree. A Cloudflare
+      # Transform Rule changes the path "/" to "/index.html". With no-cache, the edge and
+      # each browser get the page again each time. The command writes the date to
+      # RUN/index.txt only after aws completes the upload, and report-mirror reads it there.
       - >-
-        d=$(date -u '+%Y-%m-%d %H:%M UTC') && sed "s|<!--UPDATED-->|$d|" {{.ROOT_DIR}}/site/index.html
-        | aws s3 cp {{.AWS_FLAGS}} --content-type text/html --cache-control no-cache - {{.S3}}/index.html
+        d=$(date -u '+%Y-%m-%d %H:%M UTC')
+        && sed "s|<!--UPDATED-->|$d|" {{.ROOT_DIR}}/site/index.html > {{.RUN}}/index.html
+        && aws s3 cp {{.AWS_FLAGS}} --content-type text/html --cache-control no-cache
+        {{.RUN}}/index.html {{.S3}}/index.html
         && echo "$d" > {{.RUN}}/index.txt
 
   report-mirror:
