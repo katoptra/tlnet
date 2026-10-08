@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>tlnet.katoptra.org</title>
-<meta name="description" content="A daily, signature-verified mirror of CTAN systems/texlive/tlnet, the repository tlmgr installs and updates from. Point tlmgr or install-tl at https://tlnet.katoptra.org/systems/texlive/tlnet/.">
+<meta name="description" content="A daily mirror of CTAN systems/texlive/tlnet, the repository that tlmgr installs and updates from. The pipeline verifies the TeX Live signatures. Set the repository of tlmgr or install-tl to https://tlnet.katoptra.org/systems/texlive/tlnet/.">
 <link rel="canonical" href="https://tlnet.katoptra.org/">
 <style>
   :root { --fg: #1f2328; --bg: #ffffff; --muted: #59636e; --line: #d1d9e0; --code: #f6f8fa; --link: #0969da; }
@@ -49,62 +49,69 @@
 <p>
 <a href="https://github.com/katoptra/tlnet/actions/workflows/sync.yml"><img src="https://github.com/katoptra/tlnet/actions/workflows/sync.yml/badge.svg" alt="sync"></a>
 <a href="https://github.com/katoptra/tlnet/blob/main/LICENSE"><img src="https://img.shields.io/github/license/katoptra/tlnet" alt="license"></a>
-<a href="https://github.com/katoptra/tlnet/actions/workflows/sync.yml"><img src="https://healthchecks.io/badge/8955b5d3-ba3b-4e8a-ac39-8501494333f5/otTXcui6-2.svg" alt="mirror"></a>
-<br><span class="status">Last updated <!--UPDATED-->.</span>
+<a href="https://github.com/katoptra/tlnet/actions/workflows/sync.yml"><img src="https://healthchecks.io/b/2/f34567b9-d513-41a5-93d8-56fb69d25257.svg" alt="mirror"></a>
+<br><span class="status">Last update: <!--UPDATED-->.</span>
 </p>
 
-<p>A daily mirror of <code>CTAN/systems/texlive/tlnet</code> on Cloudflare R2. This is the directory tlmgr installs and updates from, and it is the only part of CTAN here, complete with every platform, docs and sources.</p>
+<p>A daily mirror of <code>CTAN/systems/texlive/tlnet</code> on Cloudflare R2. <code>tlmgr</code> installs and updates TeX Live from this directory. The mirror has the full subtree: all the platforms, the documentation and the sources. From the other parts of CTAN, the mirror has only the <code>timestamp</code> file at the root.</p>
 
 <h2>How to use</h2>
 
-<p>TeX Live and TinyTeX both use <code>tlmgr</code>:</p>
+<p>TeX Live and TinyTeX use <code>tlmgr</code>. To use this mirror, give these two commands:</p>
 
 <pre><code>tlmgr option repository https://tlnet.katoptra.org/systems/texlive/tlnet/
 tlmgr update --self --all</code></pre>
 
-<p>For a fresh install, give the installer the same URL:</p>
+<p>For a new installation, give the same URL to the installer:</p>
 
 <pre><code>install-tl -repository https://tlnet.katoptra.org/systems/texlive/tlnet/</code></pre>
 
-<p>To go back to CTAN's mirror rotation: <code>tlmgr option repository ctan</code>.</p>
+<p>To set <code>tlmgr</code> back to the mirror rotation of CTAN, use <code>tlmgr option repository ctan</code>.</p>
 
-<p>The path mirrors CTAN's own layout, so the host works anywhere a CTAN mirror URL does. It tracks the
-current TeX Live release and moves to the next one when upstream does.</p>
+<p>The paths are the same as the paths on CTAN. Thus, this host can replace the host of a CTAN mirror URL.
+The mirror copies the TeX Live release that upstream has. When upstream moves to the next release, the
+mirror also moves to it.</p>
 
 <h2>How it works</h2>
 
-<p>Once a day GitHub Actions runs a job to sync the tlnet directory to R2. It verifies <code>texlive.tlpdb</code>
-and the installers against their SHA-512 and GPG signatures (via pinned TeX Live key) and every package
-container against its checksum. Every step is a verb of the rsync engine in
-<a href="https://github.com/katoptra/lib">katoptra/lib</a>, in the order the
-<a href="https://github.com/katoptra/tlnet/blob/main/Taskfile.yml"><code>Taskfile.yml</code></a> gives them.</p>
+<p>Each day, a GitHub Actions job copies the changes in the tlnet directory to R2. Before the job publishes
+a file, it verifies <code>texlive.tlpdb</code>, the installers and the updaters with their SHA-512 checksums
+and GPG signatures. For these checks, the job uses the TeX Live key that the pipeline pins. The job also
+verifies each package container with its checksum.</p>
 
-<strong><p>Is it fresh?</p></strong> 
+<p>The landing page is the only step that this mirror adds. Each other step is a verb of the toolbox or of
+the rsync engine in <a href="https://github.com/katoptra/lib">katoptra/lib</a>.
+<a href="https://github.com/katoptra/tlnet/blob/main/Taskfile.yml"><code>Taskfile.yml</code></a> gives the
+sequence of the steps.</p>
 
-<p>Check <code>last-modified</code> on the index:</p>
+<p><strong>Is it fresh?</strong></p>
 
-<pre><code>curl -sI https://tlnet.katoptra.org/systems/texlive/tlnet/tlpkg/texlive.tlpdb.sha512</code></pre>
+<p>Each hour, the master of CTAN writes its clock to <code>timestamp</code>, at the root of CTAN. Each run copies
+this file to the root of this mirror. Thus, the file shows the clock of the master at the last run
+(year-month-day-hour-minute, UTC):</p>
 
+<pre><code>curl -s https://tlnet.katoptra.org/timestamp</code></pre>
 
+<p>If this clock is more than 24 hours before a run, that run stops with an error.</p>
 
-<h2>Why use this?</h2>
-<p><code>tlmgr</code>'s default repository is CTAN's mirror rotation: every request lands on a different
-volunteer mirror, and any one of them can be unreachable, on a slow connection, behind on TLS, or a few days stale. </p>
+<h2>This mirror and the mirror rotation</h2>
+<p>The default repository of <code>tlmgr</code> is the mirror rotation of CTAN. Each request can go to a
+different volunteer mirror. Thus, these problems can occur:</p>
 
-<p>This setup ensures a consistent, reliable source for TeX Live updates built on <a href="https://cloudflare.com/network">Cloudflare's network</a>.</p>
+<ul>
+  <li>The mirror is not available.</li>
+  <li>The mirror has a slow connection.</li>
+  <li>The mirror uses a TLS version that is not the newest.</li>
+  <li>The last update of the mirror is some days before the last update of CTAN.</li>
+</ul>
+
+<p>With this mirror, each request goes to one source for TeX Live updates.
+<a href="https://cloudflare.com/network">Cloudflare's network</a> serves this source.</p>
 
 <h2>Want your own?</h2>
 
-<ol>
-  <li>Fork <a href="https://github.com/katoptra/tlnet">this repo</a>.</li>
-  <li>Create an R2 bucket named <code>tlnet</code>, an API token with Object Read &amp; Write scoped to it,
-    and a custom domain pointing at the bucket. Set <code>HOST</code> to that domain in <code>Taskfile.yml</code>.
-    For a landing page at <code>/</code>, add a Cloudflare Transform Rule rewriting the path <code>/</code> to
-    <code>/index.html</code>, and put your own links and text in <code>site/index.html</code>.</li>
-  <li>Put the R2 token and endpoint in a 1Password vault, point <code>op.env</code> at it, and add one repository secret, <code>OP_SERVICE_ACCOUNT_TOKEN</code>, for a service account that reads the vault.</li>
-  <li>Actions -&gt; sync -&gt; Run workflow. The first run finds an empty bucket and fills it; every
-    run after that pushes the daily delta.</li>
-</ol>
+<p>To make a mirror of tlnet for you, do the steps in
+<a href="https://github.com/katoptra/tlnet#want-your-own">Want your own?</a> in the README.</p>
 
 <p>Pull requests are welcome.</p>
 
