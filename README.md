@@ -132,9 +132,15 @@ vault's UUID, why a UUID and not a name, and the repository-secrets alternative:
 
 ### 4. The zone
 
-One Cloudflare Transform Rule, scoped to the mirror's hostname: rewrite the path `/` to
-`/index.html`. Without it the root is a 404 and the mirror still works; `tlmgr` never asks
-for the root.
+Three Cloudflare rules, all scoped to the mirror's hostname. In this org they live in
+jshvn/terraform (`zones/katoptra.org/rulesets/rules/tlnet.json`); the pipeline never
+touches them.
+
+| Rule | What it does |
+|---|---|
+| Configuration Rule | Turns off Email Obfuscation, Rocket Loader, Automatic HTTPS Rewrites and Browser Integrity Check. The first three rewrite HTML in flight; the fourth refuses Perl and Python clients. |
+| Cache Rule | Bypass. The edge would otherwise hold `.gz` and `.exe` responses, headers included, for hours: the nightly-rebuilt installer served stale beside its fresh `.sha512`. |
+| Transform Rule | `/` serves `/index.html`. Without it the root is a 404 and the mirror still works; `tlmgr` never asks for the root. |
 
 ### 5. Prove it, run it, schedule it
 
