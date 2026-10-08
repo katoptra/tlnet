@@ -17,13 +17,14 @@
   <a href="https://github.com/katoptra/tlnet/actions/workflows/sync.yml"><img src="https://healthchecks.io/b/2/f34567b9-d513-41a5-93d8-56fb69d25257.svg" alt="mirror"></a>
 </p>
 
-A daily mirror of `CTAN/systems/texlive/tlnet` on Cloudflare R2, at
+tlnet is a daily mirror of `CTAN/systems/texlive/tlnet` on Cloudflare R2, at
 `https://tlnet.katoptra.org/systems/texlive/tlnet/`. `tlmgr` installs and updates TeX Live
 from this directory. The mirror has the full subtree: all the platforms, the documentation
 and the sources. This is approximately 17,000 files and 6.8 GB. From the other parts of
-CTAN, the mirror has only the `timestamp` file at the root. Each day, a run makes a listing
-of the subtree on the master of CTAN, verifies the TeX Live signatures, and copies only the
-changes.
+CTAN, the mirror has only the `timestamp` file at the root.
+
+Each day, a run makes a listing of the subtree on the master of CTAN, verifies the TeX Live
+signatures, and copies only the changes.
 
 ## How to use
 
@@ -88,13 +89,14 @@ flowchart LR
   - `HOST` and `BUCKET`
   - `TL`, the signed subtree, and `TL_KEY`, the fingerprint of its key
   - `CEILING_GB`, 10 GB. If upstream is more than this, `split` stops the run.
-  - `LIST_FLOOR`. If a listing has less lines than this, the listing is too short. Then the
-    run stops before it deletes a key.
-- **The filter.** `SOURCE` is the root of CTAN, and `FILTER` keeps only the subtree in the
-  listing. Thus, each key keeps its `systems/texlive/tlnet/` prefix, and this host can
-  replace the host of a CTAN mirror URL. The filter also removes the revision-stamped copies
-  of the containers from the listing. `tlmgr` downloads `foo.tar.xz`, and upstream keeps
-  `foo.r123.tar.xz` with a symlink to it. Two copies make the tree two times larger.
+  - `LIST_FLOOR`, 15000. If a listing does not have more than 15,000 lines, the listing is
+    too short. Then the run stops before it deletes a key.
+- **The filter.** `SOURCE` is the root of CTAN, and `FILTER` keeps the subtree and
+  `/timestamp` in the listing. Thus, each key in the subtree keeps its
+  `systems/texlive/tlnet/` prefix, and this host can replace the host of a CTAN mirror URL.
+  The filter also removes from the listing each copy that has a revision number in its name.
+  `tlmgr` downloads `foo.tar.xz`, and upstream keeps `foo.r123.tar.xz` with a symlink to it.
+  Two copies make the subtree two times larger.
 - **Freshness.** The filter also includes `timestamp` from the root of CTAN, and `FRESH_KEY`
   is `timestamp`. The master of CTAN writes its clock to this file each hour, also when the
   subtree has no changes. At the end of each run, `fresh` stops the run with an error if
@@ -109,11 +111,14 @@ flowchart LR
   not have.
 - **Its row of the run summary**, with the date of the landing page.
 
-The engine verbs `prepare` and `verify` do the signature checks. With `TL` and `TL_KEY` set,
-they verify the signatures and checksums of TeX Live before the run publishes a file.
-[lib, The rsync engine](https://github.com/katoptra/lib#the-rsync-engine) tells how these
-checks operate. It also tells how the list diff, the state, the canary, the freshness check
-and the daily reconcile operate.
+The engine verbs `prepare` and `verify` do the signature checks. If `TL` and `TL_KEY` have
+values, these verbs verify the signatures and checksums of TeX Live before the run publishes
+a file. [lib, The rsync engine](https://github.com/katoptra/lib#the-rsync-engine) tells how
+these checks operate. It also tells how these items operate:
+
+- The list diff and the state
+- The canary and the freshness check
+- The daily reconcile.
 
 ## Want your own?
 
@@ -133,8 +138,8 @@ The bucket is the mirror. It contains:
 - The landing page and the `timestamp` of CTAN, at the root
 - The listing of the last run, in `.state/`.
 
-At 6.8 GB, the cost of the storage is approximately $0.10 a month. R2 charges $0.015 for
-each GB-month. If upstream is more than 10 GB, the pipeline stops the run.
+At 6.8 GB, the cost of the storage is approximately $0.10 each month. In R2, the cost is
+$0.015 for each GB-month. If upstream is more than 10 GB, the pipeline stops the run.
 
 | Item | Function |
 |---|---|
@@ -164,8 +169,9 @@ Put four values in one item of your vault. Give the item the name `tlnet`.
    organization or on the repository.
 
 No other configuration is necessary. [lib, Secrets](https://github.com/katoptra/lib#secrets)
-tells how to find the UUID of a vault, and the cause for a UUID and not a name. It also tells
-how to use repository secrets as an alternative to a vault.
+tells how to find the UUID of a vault, and how to use repository secrets as an alternative to
+a vault. An `op://` line with the UUID continues to operate if a person changes the name of
+the vault.
 
 ### 4. The zone
 
@@ -180,9 +186,8 @@ rules one time. The pipeline does not set them, and it does not change them.
 
 ### 5. Do the checks, run it, schedule it
 
-Do these steps on a laptop with go-task, the 1Password CLI, and Docker or Apple `container`:
-
-1. Do the two checks:
+1. On a laptop with go-task, the 1Password CLI, and Docker or Apple `container`, do the two
+   checks:
 
    ```sh
    task check                # render every command of the pipeline inside the image; diff against render.txt
@@ -202,13 +207,13 @@ No file in this repository starts a run on a schedule. Do one of these steps:
 - Add a `schedule:` trigger to `.github/workflows/sync.yml`, with a time that you select.
 - Dispatch the workflow from an external scheduler. This mirror uses this method.
 
-A run also does a reconcile of the bucket with the state if the last reconcile was 24 h or
-more before the run. The time of day of the run has no effect.
+A run also does a reconcile of the bucket with the state if the last reconcile was 23.5
+hours or more before the run. The time of day of the run has no effect.
 
 ## Operating it
 
 `task` with no arguments prints the menu. Give the flags of a run after `--`. The `vars`
-input of the workflow accepts the same flags:
+input of the workflow uses the same flags:
 
 ```sh
 task sync                                   # one run, the same thing Actions runs
@@ -223,7 +228,7 @@ Each run adds one table to its job page. The table shows:
 - The start time of the run, and the number of minutes that it operated
 - The delta, and the files that the run uploaded
 - The state
-- The storage, compared with the 10 GB ceiling
+- The storage and the 10 GB ceiling
 - The signature check
 - The clock of CTAN, and the time since it changed
 - The date on the landing page.
@@ -242,11 +247,8 @@ for each verb of the engine that can stop a run. This mirror adds these data:
   changes until you increase `CEILING_GB`. A larger ceiling also increases the cost.
 - **The listing was too short.** Start the run again. If the problem continues, examine the
   master of CTAN.
-- **The canary stopped the run.** The domain did not serve the canary to a Perl client, or
-  it served bytes that are different from the bytes in the bucket. Examine the Configuration
-  Rule of the zone (step 4). The bucket has no error.
-- **`fresh` stopped the run.** The `timestamp` of CTAN did not change for more than
-  24 hours. Examine the master of CTAN.
+- **The canary stopped the run.** Examine the Configuration Rule of the zone (step 4).
+- **`fresh` stopped the run.** Examine the master of CTAN.
 - **The state is not correct.** `task sync -- RECONCILE=true` makes the state again from a
   listing of the bucket. The bucket is the mirror. If the state is missing, the cost is one
   listing.
@@ -280,7 +282,7 @@ the subtree:
   `translations/`.
 
 The mirror copies these files with no signature check. No TeX Live tool downloads them from a
-repository URL. They are for installations that operate from a local copy of the tree.
+repository URL. They are for installations that operate from a local copy of the subtree.
 
 Pull requests are welcome.
 
