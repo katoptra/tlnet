@@ -15,9 +15,18 @@ vars:
   BUCKET: tlnet                                 # bucket name; objects sit at its root under CTAN's own paths
   TL: systems/texlive/tlnet                     # the signed subtree, which is the whole mirror
   TL_KEY: C78B82D8C79512F79CC0D7C80D5E5D9106BAB6BC   # tug.org/texlive/verify.html
-  CEILING_GB: 10                                # R2's free tier; refuse to run past this many decimal GB upstream
-  LIST_FLOOR: 8500                              # a listing under this many lines is a truncated one; tlnet is ~17,000 files
+  CEILING_GB: 10                                # refuse to run past this many decimal GB upstream
+  LIST_FLOOR: 15000                             # a listing under this many lines is a truncated one; tlnet is ~17,000 files
   OWN: index.html                               # the landing page, the mirror's own key at the bucket root; reconcile spares it
+  # smoke reads this file through the domain as a Perl client, and compares it with the
+  # copy in the bucket. If Browser Integrity Check is on, the domain gives a 403 and the
+  # run stops. The file has no links. Thus, this canary cannot find an HTML rewriter of
+  # the zone.
+  CANARY: systems/texlive/tlnet/tlpkg/texlive.tlpdb.sha512
+  # The clock of the CTAN master. It changes each hour, but the subtree can stay the same
+  # for weeks before a TeX Live release. The fresh verb stops the run if this clock is more
+  # than FRESH_HOURS (24) before the time of the check.
+  FRESH_KEY: timestamp
   # SOURCE is CTAN's root and FILTER narrows the listing to the subtree, so every key keeps
   # its systems/texlive/tlnet/ prefix and the host works anywhere a CTAN mirror URL does.
   # rsync takes the first rule that matches: the two excludes drop the revision-stamped
@@ -27,29 +36,16 @@ vars:
   FILTER: >-
     --exclude='*.r[0-9]*.tar.xz' --exclude='/systems/texlive/tlnet/update-tlmgr-r*'
     --include=/systems/ --include=/systems/texlive/ --include='/systems/texlive/tlnet/***'
-    --exclude='*'
+    --include=/timestamp --exclude='*'
 
-env:
-  AWS_CONFIG_FILE: '{{.ROOT_DIR}}/aws.config'
-
-# Two includes, one namespace. A verb both an include and this file define is a parse
-# error unless the include excludes it: the report hooks, and the one engine hook this
-# mirror fills. MAX_BATCHES is the engine's inline default and RECONCILE the toolbox's, so
-# a run sets them: task sync -- MAX_BATCHES=8 RECONCILE=true.
 includes:
   toolbox:
     taskfile: https://raw.githubusercontent.com/katoptra/lib/v2/toolbox.yml
     flatten: true
-    excludes: [report-engine, report-mirror]
+    excludes: [report-mirror]
     vars:
       NAME: tlnet
       DESC: a daily mirror of {{.SOURCE}}{{.TL}}/ at https://{{.HOST}}/{{.TL}}/
-      IMAGE: ghcr.io/katoptra/toolbox:rsync-v2
-      MENU: >-
-        ""
-        "${c}listing -- dante over rsync, no credentials, inside the image${r}"
-        "  task run -- task list     The subtree through FILTER, to .run/upstream.txt"
-        "                    ${d}every path under {{.TL}}/, none revision-stamped; LIST_FLOOR is half its line count${r}"
   rsync:
     taskfile: https://raw.githubusercontent.com/katoptra/lib/v2/engines/rsync.yml
     flatten: true
