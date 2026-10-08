@@ -1,23 +1,38 @@
-# Mirror CTAN's systems/texlive/tlnet, the tree tlmgr installs and updates from, into a
-# Cloudflare R2 bucket, daily, from a list diff: dante's listing of the subtree against the
-# state the last run left in the bucket. The toolbox, which starts a run, contains it in an
-# image, resolves its secrets, renders and checks it, and reports it, and the rsync engine,
-# which moves the bytes, checks the signatures and orders the pipeline, are katoptra/lib's,
-# included below at v2 and flattened into this file. What is here is the mirror's own: its
-# identity, the filter that narrows CTAN to the subtree, the landing page at the bucket
-# root, and its row of the report. R2 is reached through the AWS CLI, configured by the
-# three AWS_* variables op.env resolves from 1Password, which cross into the image by name.
+# tlnet: a daily mirror of systems/texlive/tlnet from CTAN, in a Cloudflare R2 bucket.
+# tlmgr installs and updates TeX Live from this tree. Each run makes a list diff. It
+# compares the listing of the subtree on dante with the state that the last run put in
+# the bucket.
+#
+# The toolbox and the rsync engine are katoptra/lib's. This file includes the two below,
+# at v2, with `flatten: true`. lib's README tells which verbs and vars each one supplies.
+# The items here are for this mirror only:
+#   - the root vars that identify the mirror and set its limits
+#   - FILTER, which keeps only the subtree and the timestamp file of CTAN in the listing
+#   - CANARY and FRESH_KEY, two files that smoke reads through the domain
+#   - index, which uploads the landing page to the bucket root
+#   - report-mirror, which adds the row of this mirror to the run summary
+# The secrets are the names in op.env. The toolbox gets their values from the vault and
+# gives each value to the image by its name.
 version: '3'
 
 vars:
-  SOURCE: rsync://rsync.dante.ctan.org/CTAN/   # the master; a secondary mirror can lag it by a day
-  HOST: tlnet.katoptra.org                      # a fork changes this line and the text in site/index.html
-  BUCKET: tlnet                                 # bucket name; objects sit at its root under CTAN's own paths
-  TL: systems/texlive/tlnet                     # the signed subtree, which is the whole mirror
+  # The master. A secondary mirror can be one day behind it.
+  SOURCE: rsync://rsync.dante.ctan.org/CTAN/
+  # A fork changes this line and the text in site/index.html.
+  HOST: tlnet.katoptra.org
+  # The bucket name. The key of each file from CTAN is its path on CTAN, from the
+  # bucket root.
+  BUCKET: tlnet
+  # The signed subtree. From CTAN, the mirror has only this subtree and the timestamp file.
+  TL: systems/texlive/tlnet
   TL_KEY: C78B82D8C79512F79CC0D7C80D5E5D9106BAB6BC   # tug.org/texlive/verify.html
-  CEILING_GB: 10                                # refuse to run past this many decimal GB upstream
-  LIST_FLOOR: 15000                             # a listing under this many lines is a truncated one; tlnet is ~17,000 files
-  OWN: index.html                               # the landing page, the mirror's own key at the bucket root; reconcile spares it
+  # The run stops if upstream is larger than this number of decimal GB.
+  CEILING_GB: 10
+  # A listing of this number of lines or less is truncated. tlnet has about 17,000 files.
+  LIST_FLOOR: 15000
+  # The landing page: a key at the bucket root that upstream does not have. reconcile
+  # does not remove it.
+  OWN: index.html
   # smoke reads this file through the domain as a Perl client, and compares it with the
   # copy in the bucket. If Browser Integrity Check is on, the domain gives a 403 and the
   # run stops. The file has no links. Thus, this canary cannot find an HTML rewriter of
@@ -27,12 +42,17 @@ vars:
   # for weeks before a TeX Live release. The fresh verb stops the run if this clock is more
   # than FRESH_HOURS (24) before the time of the check.
   FRESH_KEY: timestamp
-  # SOURCE is CTAN's root and FILTER narrows the listing to the subtree, so every key keeps
-  # its systems/texlive/tlnet/ prefix and the host works anywhere a CTAN mirror URL does.
-  # rsync takes the first rule that matches: the two excludes drop the revision-stamped
-  # duplicates (tlmgr asks for foo.tar.xz, which upstream symlinks to foo.r123.tar.xz; -L
-  # resolves the stable name, and holding both would double the tree), the includes open
-  # the path down to the subtree, and the last rule drops everything else.
+  # SOURCE is the root of CTAN. FILTER keeps two items of CTAN in the listing: the subtree
+  # and the timestamp file at the root. Thus, each key in the subtree keeps its
+  # systems/texlive/tlnet/ prefix, and a tool that accepts a CTAN mirror URL also accepts
+  # this host. rsync obeys only the first rule that agrees with a path:
+  #   1. The two `--exclude` rules remove each copy that has a revision number in its
+  #      name. tlmgr downloads foo.tar.xz, a symlink to foo.r123.tar.xz upstream. With
+  #      -L, rsync sends a file, not a symlink, at the stable name. If the bucket has the
+  #      two names, the tree becomes two times larger.
+  #   2. The `--include` rules let rsync go down the path to the subtree. The rule for
+  #      /timestamp keeps FRESH_KEY, the clock file at the root, in the listing.
+  #   3. The last rule removes all other paths.
   FILTER: >-
     --exclude='*.r[0-9]*.tar.xz' --exclude='/systems/texlive/tlnet/update-tlmgr-r*'
     --include=/systems/ --include=/systems/texlive/ --include='/systems/texlive/tlnet/***'
@@ -54,12 +74,14 @@ includes:
 tasks:
   index:
     desc: Upload site/index.html, dated now, to the bucket root as the landing page
-    set: [pipefail]   # a failed sed must never upload an empty page
+    set: [pipefail]   # if sed has an error, aws must not upload an empty page
     cmds:
-      # Streamed, so the checked-in file is the only copy. The key sits at the bucket root,
-      # outside the subtree, and a Cloudflare Transform Rule rewrites "/" to it; no-cache so
-      # the edge and browsers refetch the page every visit. The stamp is written once the
-      # upload landed, and report-mirror reads it.
+      # sed sends the page, with the date, to aws through a pipe. Thus, the file in the
+      # repository is the only copy on disk. The key is at the bucket root, not in the
+      # subtree. A Cloudflare Transform Rule changes the path "/" to "/index.html". With
+      # no-cache, the edge and each browser get the page again each time. The command
+      # writes the date to RUN/index.txt only after aws completes the upload, and
+      # report-mirror reads it there.
       - >-
         d=$(date -u '+%Y-%m-%d %H:%M UTC') && sed "s|<!--UPDATED-->|$d|" {{.ROOT_DIR}}/site/index.html
         | aws s3 cp {{.AWS_FLAGS}} --content-type text/html --cache-control no-cache - {{.S3}}/index.html
