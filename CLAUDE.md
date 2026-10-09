@@ -20,7 +20,8 @@ No file in this repository starts a run. An external scheduler dispatches `sync.
     to the rsync engine.
   - `Taskfile.yml` and its comments tell the function of the root vars, `FILTER` and the two
     verbs.
-  - Do not add shell scripts. To add to a verb of lib, use a hook. Do not copy the verb.
+  - Do not add shell scripts. To add to a verb of lib, use a hook. Do not make a copy of the
+    verb.
   - In `excludes:`, the toolbox include has `report-mirror`, and the engine include has
     `index`. Do not give a new value to a var that lib sets in its `vars:`.
   - Root vars hold only the values of this mirror. Do not put an engine default in a root
@@ -51,8 +52,8 @@ Each item here prevents an error that occurred, or a cost that can occur. Keep e
   symlinks. Thus, the engine lists and fetches with `-L`, and `FILTER` removes
   `*.r[0-9]*.tar.xz` and the `update-tlmgr-r*` updaters from the listing. Two copies of each
   container make the storage and the cost two times larger.
-- **The diff finds a new revision with the same size.** The state line has the mtime of each
-  file, and a new revision has a new mtime.
+- **The diff finds a new revision with the same number of bytes.** The state line has the
+  mtime of each file, and a new revision has a new mtime.
 - **The sequence of `FILTER` is important.** rsync uses the first rule that agrees with a
   path. Thus, the two `--exclude` rules are before the `--include` rules that open the
   subtree, and `--include=/timestamp` is before the last `--exclude`.
@@ -81,8 +82,8 @@ Each item here prevents an error that occurred, or a cost that can occur. Keep e
 - **In some runs, `reconcile` does not run.** It does not run if the run starts less than
   23.5 hours after the last reconcile. It also does not run in a chained run while batches
   stay in the delta. `task sync -- RECONCILE=true` starts a reconcile manually.
-- **The job log is not a count.** `report` counts from `.run/`, not from the log. To know if
-  a run did all its work, use `smoke`, not a count.
+- **Do not count from the job log.** `report` counts from `.run/`, not from the log. To know
+  if a run did all its work, do not count files. Use `smoke`.
 - **The zone rules are not in this repository.** README step 4 gives the list of them. The
   Configuration Rule sets the three HTML rewriters and Browser Integrity Check to off.
 - **The canary finds only Browser Integrity Check.** The canary is
@@ -110,10 +111,10 @@ All checks run in the toolbox image.
   paths and `timestamp`. No path agrees with `\.r[0-9]+\.tar\.xz$`, and no file name starts
   with `update-tlmgr-r`. `LIST_FLOOR` is 15000, approximately 90% of the line count.
 - `task plan` runs the read-only half on the bucket of the mirror, with `op run`. It uploads
-  no file. It shows:
-  - The listing
-  - The state
-  - The delta and its batches.
+  no file. It does these steps:
+  - `list` writes the listing to `.run/`.
+  - `state` gets the state from the bucket and writes it to `.run/`.
+  - `diff` and `split` make the delta and its batches.
 - Do the checks of these verbs in lib, with
   `cd ../lib/examples/rsync && task run -- task offline`:
   - The engine verbs `diff`, `split`, `merge` and `retry`

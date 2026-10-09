@@ -95,8 +95,8 @@ this file to the root of this mirror. Thus, the file shows the clock of the mast
 <p>If this clock is more than 24 hours before a run, that run stops with an error.</p>
 
 <h2>This mirror and the mirror rotation</h2>
-<p>The default repository of <code>tlmgr</code> is the mirror rotation of CTAN. Each request can go to a
-different volunteer mirror. Thus, these problems can occur:</p>
+<p>The default repository of <code>tlmgr</code> is the mirror rotation of CTAN. Thus, <code>tlmgr</code> can download
+each file from a different volunteer mirror, and these problems can occur:</p>
 
 <ul>
   <li>The mirror is not available.</li>
@@ -105,7 +105,7 @@ different volunteer mirror. Thus, these problems can occur:</p>
   <li>The last update of the mirror is some days before the last update of CTAN.</li>
 </ul>
 
-<p>With this mirror, each request goes to one source for TeX Live updates.
+<p>With this mirror, <code>tlmgr</code> downloads all files from one source of TeX Live updates.
 <a href="https://cloudflare.com/network">Cloudflare's network</a> serves this source.</p>
 
 <h2>Want your own?</h2>

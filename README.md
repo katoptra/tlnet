@@ -24,7 +24,7 @@ and the sources. This is approximately 17,000 files and 6.8 GB. From the other p
 CTAN, the mirror has only the `timestamp` file at the root.
 
 Each day, a run makes a listing of the subtree on the master of CTAN, verifies the TeX Live
-signatures, and copies only the changes.
+signatures, and uploads only the changes.
 
 ## How to use
 
@@ -202,7 +202,7 @@ The first run finds an empty bucket. It uses the full subtree as the delta, and 
 bucket. If the run does not do all the batches, it starts the next run. After the bucket is
 full, each run copies the delta of its day.
 
-No file in this repository starts a run on a schedule. Do one of these steps:
+No file in this repository schedules a run. Do one of these steps:
 
 - Add a `schedule:` trigger to `.github/workflows/sync.yml`, with a time that you select.
 - Dispatch the workflow from an external scheduler. This mirror uses this method.
@@ -269,9 +269,9 @@ TeX Live signs the SHA-512 checksums of these files with GPG:
 - The installers at the root of the subtree (`install-tl*.sha512`)
 - The updaters at the root of the subtree (`update-tlmgr-latest.*.sha512`).
 
-The expiry date of the signing subkey is 2027-07-13. Each year, upstream extends the period
-of the subkey. The mirror rejects a signature from an expired or revoked key, but `tlmgr`
-accepts it.
+The subkey that signs the checksums has an expiry date of 2027-07-13. Each year, upstream
+extends the period of the subkey. The mirror rejects a signature from an expired or revoked
+key, but `tlmgr` accepts it.
 
 The signed tlpdb has the checksum of each package container. TeX Live signs no other file in
 the subtree:
