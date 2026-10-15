@@ -14,8 +14,13 @@
 <p align="center">
   <a href="https://github.com/katoptra/tlnet/actions/workflows/sync.yml"><img src="https://github.com/katoptra/tlnet/actions/workflows/sync.yml/badge.svg" alt="sync"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/katoptra/tlnet" alt="license"></a>
-  <a href="https://github.com/katoptra/tlnet/actions/workflows/sync.yml"><img src="https://healthchecks.io/b/2/f34567b9-d513-41a5-93d8-56fb69d25257.svg" alt="mirror"></a>
 </p>
+
+> [!NOTE]
+> This repository is archived. The CTAN mirror, [katoptra/ctan](https://github.com/katoptra/ctan),
+> has the same subtree at the same paths, and it syncs hourly. Set the `tlmgr` repository to
+> `https://ctan.katoptra.org/systems/texlive/tlnet/`. `tlnet.katoptra.org` serves the bucket of
+> the CTAN mirror. Thus, a URL on that host continues to operate.
 
 tlnet is a daily mirror of `CTAN/systems/texlive/tlnet` on Cloudflare R2, at
 `https://tlnet.katoptra.org/systems/texlive/tlnet/`. `tlmgr` installs and updates TeX Live
